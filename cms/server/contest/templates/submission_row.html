@@ -20,7 +20,7 @@
     {% raw col1 %}
     <td class="status">
         {{ _("Compilation failed") }}
-        <a class="details">{{ _("details") }}</a>
+        {% if show_submission_details_link %}<a class="details">{{ _("details") }}</a>{% end %}
     </td>
     {% if score_type is not None and score_type.max_public_score != 0 %}
     <td class="public_score undefined">{{ _("N/A") }}</td>
@@ -57,7 +57,7 @@
     {% raw col1 %}
     <td class="status">
         {{ _("Evaluated") }}
-        <a class="details">{{ _("details") }}</a>
+        {% if show_submission_details_link %}<a class="details">{{ _("details") }}</a>{% end %}
     </td>
 
     {% if score_type.max_public_score > 0 %}

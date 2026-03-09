@@ -87,6 +87,12 @@ class Contest(Base):
         nullable=False,
         default=True)
 
+    # Whether to show the submission details link to contestants.
+    show_submission_details_link = Column(
+        Boolean,
+        nullable=False,
+        default=True)
+
     # Whether the user question is enabled.
     allow_questions = Column(
         Boolean,
