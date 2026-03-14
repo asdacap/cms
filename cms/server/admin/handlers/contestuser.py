@@ -231,10 +231,17 @@ class ParticipationHandler(BaseHandler):
 
             # Update the team
             self.get_string(attrs, "team")
-            team = self.sql_session.query(Team)\
-                       .filter(Team.code == attrs["team"])\
-                       .first()
-            participation.team = team
+            team_code = attrs["team"]
+            if team_code:
+                team = self.sql_session.query(Team)\
+                           .filter(Team.code == team_code)\
+                           .first()
+                if team is None:
+                    raise ValueError(
+                        "Team with code '%s' not found." % team_code)
+                participation.team = team
+            else:
+                participation.team = None
 
         except Exception as error:
             self.service.add_notification(
