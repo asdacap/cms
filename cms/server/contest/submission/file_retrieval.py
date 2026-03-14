@@ -38,6 +38,7 @@ from collections import namedtuple
 
 from patoolib.util import PatoolError
 
+from cms.conf import config
 from cmscommon.archive import Archive
 
 
@@ -120,5 +121,12 @@ def extract_files_from_tornado(tornado_files):
     result = list()
     for codename, files in tornado_files.items():
         for f in files:
-            result.append(ReceivedFile(codename, f.filename, f.body))
+            if config.dont_change_source_filename and f.filename:
+                # Preserve the original filename, replacing only the
+                # extension with .%l so the language placeholder works.
+                base = os.path.splitext(f.filename)[0]
+                effective_codename = base + ".%l"
+            else:
+                effective_codename = codename
+            result.append(ReceivedFile(effective_codename, f.filename, f.body))
     return result

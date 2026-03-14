@@ -27,7 +27,7 @@
 
 import logging
 
-from sqlalchemy import func, not_, literal_column
+from sqlalchemy import and_, func, not_, literal_column
 
 from cms import config, ServiceCoord, get_service_shards
 from cms.db import SessionGen, Dataset, Submission, SubmissionResult, Task
@@ -188,5 +188,19 @@ class AdminWebServer(WebService):
 
         stats = {key: value for value, key in results}
         stats['compiling'] += 2 * stats['total'] - sum(stats.values())
+
+        # Count submissions with no SubmissionResult for the active dataset.
+        invalid_query = session\
+            .query(func.count(Submission.id))\
+            .select_from(Submission)\
+            .join(Task, Submission.task_id == Task.id)\
+            .outerjoin(SubmissionResult, and_(
+                SubmissionResult.submission_id == Submission.id,
+                SubmissionResult.dataset_id == Task.active_dataset_id))\
+            .filter(SubmissionResult.submission_id.is_(None))
+        if contest_id is not None:
+            invalid_query = invalid_query\
+                .filter(Task.contest_id == contest_id)
+        stats['invalid'] = invalid_query.scalar()
 
         return stats

@@ -27,6 +27,7 @@ import logging
 import re
 from difflib import SequenceMatcher
 
+from cms.conf import config
 from cms.db.submission import Submission, File
 from cms.db.user import Participation
 
@@ -36,11 +37,6 @@ logger = logging.getLogger(__name__)
 comment_re = re.compile(r'(//.*|/\*[\s\S]*?\*/)', re.MULTILINE)
 preprocessor_re = re.compile(r'#.*', re.MULTILINE)
 whitespace_re = re.compile(r'\s', re.MULTILINE)
-
-# Configuration defaults (can be overridden via config)
-PLAGIARISM_IGNORE_PREPROCESSOR = True
-PLAGIARISM_IGNORE_COMMENTS = True
-PLAGIARISM_IGNORE_WHITESPACE = True
 
 
 def clean_text(text, ignore_preprocessor=True, ignore_comments=True,
@@ -69,9 +65,9 @@ def clean_text(text, ignore_preprocessor=True, ignore_comments=True,
 
 
 def calculate_plagiarism(submission, session, file_cacher,
-                        ignore_preprocessor=PLAGIARISM_IGNORE_PREPROCESSOR,
-                        ignore_comments=PLAGIARISM_IGNORE_COMMENTS,
-                        ignore_whitespace=PLAGIARISM_IGNORE_WHITESPACE):
+                        ignore_preprocessor=None,
+                        ignore_comments=None,
+                        ignore_whitespace=None):
     """Check a submission for plagiarism against earlier submissions.
 
     Compares the submission against all earlier submissions for the same
@@ -90,6 +86,13 @@ def calculate_plagiarism(submission, session, file_cacher,
         a human-readable summary and details_json contains detailed
         comparison data for all compared submissions.
     """
+    if ignore_preprocessor is None:
+        ignore_preprocessor = config.plagiarism_ignore_preprocessor
+    if ignore_comments is None:
+        ignore_comments = config.plagiarism_ignore_comments
+    if ignore_whitespace is None:
+        ignore_whitespace = config.plagiarism_ignore_whitespace
+
     logger.info("Plagiarism check on submission id %s", submission.id)
 
     submission.plagiarism_check_result = None

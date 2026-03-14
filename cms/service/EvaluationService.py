@@ -34,6 +34,7 @@ import logging
 from collections import defaultdict
 from datetime import timedelta
 from functools import wraps
+from threading import Thread, Lock
 
 import gevent.lock
 from sqlalchemy import func
@@ -44,6 +45,8 @@ from cmscommon.datetime import make_timestamp
 from cms.db import SessionGen, Digest, Dataset, Evaluation, Submission, \
     SubmissionResult, Testcase, UserTest, UserTestResult, get_submissions, \
     get_submission_results, get_datasets_to_judge
+from cms.db.filecacher import FileCacher
+from cms.plagiarismchecker import calculate_plagiarism
 from cms.grading.Job import JobGroup
 from cms.io import Executor, TriggeredService, rpc_method
 from .esoperations import ESOperation, get_relevant_operations, \
@@ -297,6 +300,8 @@ class EvaluationService(TriggeredService):
                          EvaluationService.WORKER_CONNECTION_CHECK_TIME
                          .total_seconds(),
                          immediately=False)
+
+        self.plagiarism_check_lock = Lock()
 
     def submission_enqueue_operations(self, submission):
         """Push in queue the operations required by a submission.
@@ -838,8 +843,54 @@ class EvaluationService(TriggeredService):
                 return
 
             self.submission_enqueue_operations(submission)
+            self.recalculate_plagiarism_result(submission_id=submission_id)
 
             session.commit()
+
+    @rpc_method
+    def recalculate_plagiarism_result(self,
+                                      contest_id=None,
+                                      submission_id=None,
+                                      dataset_id=None,
+                                      participation_id=None,
+                                      task_id=None):
+        """Run plagiarism check on submissions matching the given filters.
+
+        Accepts optional filters to restrict which submissions are checked.
+        Runs in a background thread to avoid blocking ES.
+
+        contest_id (int|None): restrict to this contest.
+        submission_id (int|None): restrict to this submission.
+        dataset_id (int|None): restrict to this dataset (unused by
+            get_submissions, kept for API symmetry).
+        participation_id (int|None): restrict to this participation.
+        task_id (int|None): restrict to this task.
+
+        """
+        def run():
+            if not self.plagiarism_check_lock.acquire(blocking=False):
+                logger.info("Plagiarism check already running, skipping.")
+                return
+            try:
+                file_cacher = FileCacher()
+                with SessionGen() as session:
+                    submissions = get_submissions(
+                        session, contest_id, participation_id, task_id,
+                        submission_id)
+                    for submission in submissions:
+                        try:
+                            calculate_plagiarism(submission, session,
+                                                 file_cacher)
+                        except Exception:
+                            logger.error(
+                                "Error during plagiarism check for "
+                                "submission %d.", submission.id,
+                                exc_info=True)
+                    session.commit()
+            finally:
+                self.plagiarism_check_lock.release()
+
+        Thread(target=run, daemon=True).start()
 
     @rpc_method
     def new_user_test(self, user_test_id):

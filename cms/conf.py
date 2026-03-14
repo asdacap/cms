@@ -106,6 +106,20 @@ class Config:
         self.keep_sandbox = True
         self.use_cgroups = True
         self.sandbox_implementation = 'isolate'
+        self.keep_output = True
+        self.keep_error = True
+        self.use_cg_memory_limit = False
+        self.use_cg_timing = True
+        self.wallclock_timeout_multiplier = 2
+        self.wallclock_timeout_offset = 1
+
+        # Plagiarism checker.
+        self.plagiarism_ignore_whitespace = True
+        self.plagiarism_ignore_preprocessor = True
+        self.plagiarism_ignore_comments = True
+
+        # Submission filename handling.
+        self.dont_change_source_filename = False
 
         # Sandbox.
         # Max size of each writable file during an evaluation step, in KiB.
