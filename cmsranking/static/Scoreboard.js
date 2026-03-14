@@ -228,9 +228,18 @@ var Scoreboard = new function () {
         var result = " \
 <col class=\"sel\"/> \
 <col class=\"rank\"/> \
-<col class=\"f_name\"/> <col/><col/><col/><col/><col/><col/><col/><col/><col/> \
-<col class=\"l_name\"/> <col/><col/><col/><col/><col/><col/><col/><col/><col/> \
+<col class=\"f_name\"/> <col/><col/><col/><col/><col/><col/><col/><col/><col/>";
+
+        if (!Config.first_name_is_name) {
+            result += " \
+<col class=\"l_name\"/> <col/><col/><col/><col/><col/><col/><col/><col/><col/>";
+        }
+
+        // Add team column if enabled
+        if (Config.show_team) {
+            result += " \
 <col class=\"team\"/>";
+        }
 
         // Add tags column if there are tags
         if (DataStore.tag_count > 0) {
@@ -272,9 +281,18 @@ var Scoreboard = new function () {
 <tr> \
     <th class=\"sel\"></th> \
     <th class=\"rank\">Rank</th> \
-    <th colspan=\"10\" class=\"f_name\">First Name</th> \
-    <th colspan=\"10\" class=\"l_name\">Last Name</th> \
+    <th colspan=\"10\" class=\"f_name\">" + (Config.first_name_is_name ? "Name" : "First Name") + "</th>";
+
+        if (!Config.first_name_is_name) {
+            result += " \
+    <th colspan=\"10\" class=\"l_name\">Last Name</th>";
+        }
+
+        // Add team header if enabled
+        if (Config.show_team) {
+            result += " \
     <th class=\"team\">Team</th>";
+        }
 
         // Add tags header if there are tags
         if (DataStore.tag_count > 0) {
@@ -292,8 +310,11 @@ var Scoreboard = new function () {
                 var task = tasks[j];
                 var t_id = task["key"];
 
+                var task_label = Config.show_full_task_name
+                    ? escapeHTML(task["name"])
+                    : "<abbr title=\"" + escapeHTML(task["name"]) + "\">" + escapeHTML(task["short_name"]) + "</abbr>";
                 result += " \
-    <th colspan=\"3\" class=\"score task\" data-task=\"" + t_id + "\" data-sort_key=\"t_" + t_id + "\"><abbr title=\"" + escapeHTML(task["name"]) + "\">" + escapeHTML(task["short_name"]) + "</abbr></th>";
+    <th colspan=\"3\" class=\"score task\" data-task=\"" + t_id + "\" data-sort_key=\"t_" + t_id + "\">" + task_label + "</th>";
             }
 
             result += " \
@@ -330,15 +351,22 @@ var Scoreboard = new function () {
 <tr class=\"user" + (user["selected"] > 0 ? " selected color" + user["selected"] : "") + "\" data-user=\"" + user["key"] + "\"> \
     <td class=\"sel\"></td> \
     <td class=\"rank\">" + user["rank"] + "</td> \
-    <td colspan=\"10\" class=\"f_name\">" + escapeHTML(user["f_name"]) + "</td> \
-    <td colspan=\"10\" class=\"l_name\">" + escapeHTML(user["l_name"]) + "</td>";
+    <td colspan=\"10\" class=\"f_name\">" + escapeHTML(user["f_name"]) + "</td>";
 
-        if (user['team']) {
+        if (!Config.first_name_is_name) {
             result += " \
+    <td colspan=\"10\" class=\"l_name\">" + escapeHTML(user["l_name"]) + "</td>";
+        }
+
+        // Add team cell if enabled
+        if (Config.show_team) {
+            if (user['team']) {
+                result += " \
     <td class=\"team\"><img src=\"" + Config.get_flag_url(user["team"]) + "\" title=\"" + DataStore.teams[user["team"]]["name"] + "\" /></td>";
-        } else {
-            result += " \
+            } else {
+                result += " \
     <td class=\"team\"></td>";
+            }
         }
 
         // Add tags column if there are tags
@@ -582,7 +610,9 @@ var Scoreboard = new function () {
         delete old_user["index"];
 
         $row.children("td.f_name").text(user["f_name"]);
-        $row.children("td.l_name").text(user["l_name"]);
+        if (!Config.first_name_is_name) {
+            $row.children("td.l_name").text(user["l_name"]);
+        }
 
         if (user["team"]) {
             $row.children(".team").html("<img src=\"" + Config.get_flag_url(user["team"]) + "\" title=\"" + DataStore.teams[user["team"]]["name"] + "\" />");
