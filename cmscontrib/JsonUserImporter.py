@@ -37,7 +37,7 @@ import logging
 from cms import utf8_decoder, config
 from cmsranking import Tag as RankingTag
 from cmsranking import User as RankingUser
-from cms.db import SessionGen, User, Contest, Participation, ask_for_contest
+from cms.db import SessionGen, User, Contest, Participation, Team, ask_for_contest
 from cms.service.ProxyService import encode_id, safe_put_data, CannotSendError
 
 logger = logging.getLogger(__name__)
@@ -98,9 +98,23 @@ def main():
                             email=userob.get("email", ""))
                 session.add(user)
 
-            if session.query(Participation).filter(Participation.contest == contest).filter(Participation.user == user).count() == 0:
+            # Resolve team
+            team = None
+            team_code = userob.get("team")
+            if team_code:
+                team = session.query(Team).filter(Team.code == team_code).first()
+                if team is None:
+                    logger.warning("No team with code '%s' found for user %s.", team_code, username)
+
+            participation = session.query(Participation)\
+                .filter(Participation.contest == contest)\
+                .filter(Participation.user == user)\
+                .first()
+            if participation is None:
                 logger.info("Assigning %s to contest", username)
-                session.add(Participation(contest=contest, user=user, hidden=False, unrestricted=False))
+                session.add(Participation(contest=contest, user=user, team=team, hidden=False, unrestricted=False))
+            else:
+                participation.team = team
             session.commit()
 
     if not args.skip_ranking:
