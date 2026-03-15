@@ -131,8 +131,8 @@ def main():
         for ranking in config.rankings:
             url = ranking.encode('utf-8')
             try:
-                safe_put_data(url, "users/", encoded_users, "Manual put users to %s" % ranking)
-                safe_put_data(url, "tags/", encoded_tags, "Manual put tags to %s" % ranking)
+                safe_put_data(url, b"users/", encoded_users, "Manual put users to %s" % ranking)
+                safe_put_data(url, b"tags/", encoded_tags, "Manual put tags to %s" % ranking)
             except CannotSendError as e:
                 logger.warning("Error updating ranking server: %s", e)
 
