@@ -146,7 +146,6 @@ update_scores = function (submission_id, data) {
             data["task_tokened_score"], data["task_tokened_score_message"],
             data["task_score_is_partial"], data["max_score"], data["verdict"]);
 {% endif %}
-{% endblock additional_js %}
     } else {
         schedule_update_scores(submission_id);
     }
