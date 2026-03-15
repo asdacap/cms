@@ -27,7 +27,7 @@ from cmstestsuite.unit_tests.databasemixin import DatabaseMixin
 from cms import config
 from cms.db import Submission, UserTest
 from cms.server.contest.submission import InvalidArchive, \
-    InvalidFilesOrLanguage, StorageFailed, UnacceptableSubmission, \
+    InvalidFilesOrLanguage, ReceivedFile, StorageFailed, UnacceptableSubmission, \
     accept_submission, TestingNotAllowed, UnacceptableUserTest, accept_user_test
 from cmscommon.datetime import make_datetime
 from cmscommon.digest import bytes_digest
@@ -350,6 +350,36 @@ class TestAcceptSubmission(DatabaseMixin, unittest.TestCase):
         self.assertEqual(content, FOO_CONTENT)
         self.assertIn("foo.%l", description)
         self.assertIn(self.participation.user.username, description)
+
+    def test_failure_due_to_invalid_filename_with_dont_change_source_filename(self):
+        self.received_files = [
+            ReceivedFile("foo.%l", "test@file.mock.1", FOO_CONTENT)]
+        self.extract_files_from_tornado.return_value = self.received_files
+
+        with patch.object(config, "dont_change_source_filename", True):
+            with self.assertRaisesRegex(UnacceptableSubmission, "invalid"):
+                self.call()
+
+    def test_failure_due_to_filename_with_space(self):
+        self.received_files = [
+            ReceivedFile("foo.%l", "my file.mock.1", FOO_CONTENT)]
+        self.extract_files_from_tornado.return_value = self.received_files
+
+        with patch.object(config, "dont_change_source_filename", True):
+            with self.assertRaisesRegex(UnacceptableSubmission, "invalid"):
+                self.call()
+
+    def test_success_with_valid_filename_and_dont_change_source_filename(self):
+        self.received_files = [
+            ReceivedFile("foo.%l", "valid_file.mock.1", FOO_CONTENT)]
+        self.extract_files_from_tornado.return_value = self.received_files
+
+        with patch.object(config, "dont_change_source_filename", True):
+            submission = self.call()
+
+        self.assertSubmissionIsValid(
+            submission, self.timestamp, "MockLanguage",
+            {"valid_file.%l": FOO_CONTENT, "bar.%l": BAR_CONTENT}, True)
 
 
 class TestAcceptUserTest(DatabaseMixin, unittest.TestCase):
@@ -708,6 +738,29 @@ class TestAcceptUserTest(DatabaseMixin, unittest.TestCase):
         self.assertIn(content, {FOO_CONTENT, SPAM_CONTENT, INPUT_CONTENT})
         self.assertRegex(description, "foo.%l|spammock.1|input")
         self.assertIn(self.participation.user.username, description)
+
+    def test_failure_due_to_invalid_filename_with_dont_change_source_filename(self):
+        self.received_files = [
+            ReceivedFile("foo.%l", "test@file.mock.1", FOO_CONTENT)]
+        self.extract_files_from_tornado.return_value = self.received_files
+
+        with patch.object(config, "dont_change_source_filename", True):
+            with self.assertRaisesRegex(UnacceptableUserTest, "invalid"):
+                self.call()
+
+    def test_success_with_valid_filename_and_dont_change_source_filename(self):
+        self.received_files = [
+            ReceivedFile("foo.%l", "valid_file.mock.1", FOO_CONTENT)]
+        self.extract_files_from_tornado.return_value = self.received_files
+
+        with patch.object(config, "dont_change_source_filename", True):
+            user_test = self.call()
+
+        self.assertUserTestIsValid(
+            user_test, self.timestamp, "MockLanguage",
+            {"valid_file.%l": FOO_CONTENT, "bar.%l": BAR_CONTENT},
+            {"spammock.1": SPAM_CONTENT, "hammock.1": HAM_CONTENT},
+            INPUT_CONTENT)
 
 
 if __name__ == "__main__":
