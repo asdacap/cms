@@ -212,7 +212,7 @@ class Task(Base):
              SCORE_MODE_MAX_SUBTASK,
              name="score_mode"),
         nullable=False,
-        default=SCORE_MODE_MAX_TOKENED_LAST)
+        default=SCORE_MODE_MAX)
 
     # Active Dataset (id and object) currently being used for scoring.
     # The ForeignKeyConstraint for this column is set at table-level.
