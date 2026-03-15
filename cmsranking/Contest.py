@@ -27,6 +27,7 @@ class Contest(Entity):
     - begin (int): the unix timestamp at which the contest begins
     - end (int): the unix timestamp at which the contest ends
     - score_precision (int): how many decimal places to show in scores
+    - hide_tasks (bool): whether to hide tasks in the ranking view
 
     """
     def __init__(self):
@@ -40,6 +41,7 @@ class Contest(Entity):
         self.score_precision = None
         self.freeze_time = None
         self.unfreeze = False
+        self.hide_tasks = False
 
     @staticmethod
     def validate(data):
@@ -71,6 +73,10 @@ class Contest(Entity):
             if 'unfreeze' in data:
                 assert isinstance(data['unfreeze'], bool), \
                     "Field 'unfreeze' isn't a boolean"
+            # hide_tasks is optional
+            if 'hide_tasks' in data:
+                assert isinstance(data['hide_tasks'], bool), \
+                    "Field 'hide_tasks' isn't a boolean"
         except KeyError as exc:
             raise InvalidData("Field %s is missing" % exc)
         except AssertionError as exc:
@@ -84,6 +90,7 @@ class Contest(Entity):
         self.score_precision = data['score_precision']
         self.freeze_time = data.get('freeze_time')
         self.unfreeze = data.get('unfreeze', False)
+        self.hide_tasks = data.get('hide_tasks', False)
 
     def get(self):
         result = self.__dict__.copy()
