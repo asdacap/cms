@@ -34,11 +34,32 @@ format.
 """
 
 import os.path
+import re
 from collections import namedtuple
 
 from patoolib.util import PatoolError
 
 from cmscommon.archive import Archive
+
+
+_FILENAME_REGEX = re.compile(r'^[A-Za-z0-9_.\-]+$')
+
+
+def is_valid_filename(filename):
+    """Check if a filename contains only allowed characters.
+
+    Filenames must contain only latin letters, arabic digits, underscores,
+    dots, and dashes. This matches the constraints of the FilenameSchema
+    database type.
+
+    filename (str): the filename to validate.
+
+    return (bool): True if the filename is valid, False otherwise.
+
+    """
+    if filename is None:
+        return True
+    return bool(_FILENAME_REGEX.match(filename))
 
 
 # Represents a file received through HTTP from an HTML form.
@@ -51,6 +72,12 @@ ReceivedFile = namedtuple("ReceivedFile", ["codename", "filename", "content"])
 
 class InvalidArchive(Exception):
     """Raised when the archive submitted by the user cannot be opened."""
+
+    pass
+
+
+class FilenameNotAllowed(Exception):
+    """Raised when a submitted filename contains disallowed characters."""
 
     pass
 
