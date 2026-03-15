@@ -28,13 +28,13 @@ that saves the resources usage in that machine.
 import logging
 import os
 import re
+import subprocess
 import sys
 import time
 from collections import defaultdict, deque
 from shlex import quote as shell_quote
 
 import psutil
-from gevent import subprocess
 
 from cms import config, get_safe_shard, ServiceCoord
 from cms.io import Service, rpc_method
