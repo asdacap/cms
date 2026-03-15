@@ -84,9 +84,10 @@ def main():
             for tag_code, tag_name in obj["tags"].items():
                 tag = session.query(Tag).filter(Tag.code == tag_code).first()
                 if tag is None:
-                    tag = Tag(code=tag_code, name=tag_name)
+                    actual_name = tag_name["name"] if isinstance(tag_name, dict) else tag_name
+                    tag = Tag(code=tag_code, name=actual_name)
                     session.add(tag)
-                    logger.info("Created tag '%s' (%s)", tag_code, tag_name)
+                    logger.info("Created tag '%s' (%s)", tag_code, actual_name)
                 tag_objects[tag_code] = tag
 
         for username in obj["users"]:
