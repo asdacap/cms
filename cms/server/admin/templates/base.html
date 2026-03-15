@@ -221,6 +221,33 @@ $(document).ready(init);
           </li>
 {% endif %}
         </ul>
+
+        <h1><a class="menu_link" href="{{ url("tags") }}">Tags</a></h1>
+        <ul class="menu">
+          {% if tag_list|length == 0 %}
+            <li class="menu_entry">
+              (no tag available)
+            </li>
+          {% else %}
+            <li>
+              <a class="menu_link" href="{{ url("tags") }}">
+                {% if tag_list|length == 1 %}
+                  (show the only tag...)
+                {% else %}
+                  (show the {{ tag_list|length }} tags...)
+                {% endif %}
+              </a>
+            </li>
+          {% endif %}
+
+{% if admin.permission_all %}
+          <li class="menu_entry">
+            <a class="menu_link" href="{{ url("tags", "add") }}">
+              (create new tag...)
+            </a>
+          </li>
+{% endif %}
+        </ul>
         {% else %}
           <ul class="menu">
             <li class="menu_entry"><a class="menu_link" href="{{ url("contest", contest.id) }}">General</a></li>
