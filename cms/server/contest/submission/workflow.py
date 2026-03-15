@@ -28,6 +28,7 @@
 """Procedures used by CWS to accept submissions and user tests."""
 
 import logging
+import os
 
 from cms import config
 from cms.db import Submission, File, UserTestManager, UserTestFile, UserTest
@@ -164,6 +165,22 @@ def accept_submission(sql_session, file_cacher, participation, task, timestamp,
             N_("Submission too big!"),
             N_("Each source file must be at most %d bytes long."),
             config.max_submission_length)
+
+    # After validation, rename files if configured to preserve original names.
+    # This is done after validation so Java users can submit files named
+    # after their class (e.g., Main.java) while task expects different names.
+    if config.dont_change_source_filename:
+        codename_to_filename = {rf.codename: rf.filename for rf in received_files}
+        renamed_files = {}
+        for codename, content in files.items():
+            if codename in codename_to_filename and codename_to_filename[codename]:
+                original_filename = codename_to_filename[codename]
+                base = os.path.splitext(original_filename)[0]
+                new_codename = base + ".%l"
+                renamed_files[new_codename] = content
+            else:
+                renamed_files[codename] = content
+        files = renamed_files
 
     # All checks done, submission accepted.
 
@@ -349,6 +366,20 @@ def accept_user_test(sql_session, file_cacher, participation, task, timestamp,
             N_("Input too big!"),
             N_("The input file must be at most %d bytes long."),
             config.max_input_length)
+
+    # After validation, rename files if configured to preserve original names.
+    if config.dont_change_source_filename:
+        codename_to_filename = {rf.codename: rf.filename for rf in received_files}
+        renamed_files = {}
+        for codename, content in files.items():
+            if codename in codename_to_filename and codename_to_filename[codename]:
+                original_filename = codename_to_filename[codename]
+                base = os.path.splitext(original_filename)[0]
+                new_codename = base + ".%l"
+                renamed_files[new_codename] = content
+            else:
+                renamed_files[codename] = content
+        files = renamed_files
 
     # All checks done, submission accepted.
 
