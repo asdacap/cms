@@ -177,7 +177,7 @@ def accept_submission(sql_session, file_cacher, participation, task, timestamp,
                 original_filename = codename_to_filename[codename]
                 base = os.path.splitext(original_filename)[0]
                 new_codename = base + ".%l"
-                if not is_valid_filename(new_codename):
+                if not is_valid_filename(original_filename):
                     raise UnacceptableSubmission(
                         N_("Invalid filename!"),
                         N_("Filename '%s' contains invalid characters. "
@@ -383,7 +383,7 @@ def accept_user_test(sql_session, file_cacher, participation, task, timestamp,
                 original_filename = codename_to_filename[codename]
                 base = os.path.splitext(original_filename)[0]
                 new_codename = base + ".%l"
-                if not is_valid_filename(new_codename):
+                if not is_valid_filename(original_filename):
                     raise UnacceptableUserTest(
                         N_("Invalid filename!"),
                         N_("Filename '%s' contains invalid characters. "
