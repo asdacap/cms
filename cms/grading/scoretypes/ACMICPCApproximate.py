@@ -19,6 +19,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 import logging
 
 from cms.db import SessionGen, Submission, SubmissionResult
@@ -239,11 +240,14 @@ class ACMICPCApproximate(ScoreTypeAlone):
             public_details = details.copy()
             public_details["testcases"] = public_testcases
 
-            # For ranking web server: return string values matching the headers
-            ranking_details = [
-                "%d" % before_count,  # Wrong Attempts
-                "%g" % time_penalty,  # Time Penalty
-            ]
+            # For ranking web server: return JSON string for parsing by Scoreboard.js
+            to_rws = {
+                "wrong_attempt": before_count,
+                "penalty": penalty * before_count,
+                "second_elapsed": second_elapsed,
+                "time_penalty": time_penalty,
+            }
+            ranking_details = [json.dumps(to_rws)]
 
             return score, details, public_score, public_details, ranking_details
 
