@@ -189,14 +189,10 @@ $(document).ready(function () {
     <h1>{% trans name=task.title, short_name=task.name %}{{ name }} ({{ short_name }}) <small>submissions</small>{% endtrans %}</h1>
 </div>
 
-{% if score_type is defined %}
+{% if score_type is defined and not is_acmicpc_approximate %}
     {% set two_task_scores = score_type.max_public_score > 0
         and score_type.max_public_score < score_type.max_score %}
-    {% if is_acmicpc_approximate %}
-        {% set public_score_class = get_score_class_from_verdict("Accepted") if public_score > 0 else get_score_class_from_verdict("Not Accepted") %}
-    {% else %}
-        {% set public_score_class = get_score_class(public_score, score_type.max_public_score, task.score_precision) %}
-    {% endif %}
+    {% set public_score_class = get_score_class(public_score, score_type.max_public_score, task.score_precision) %}
 <div class="task_score_container row-fluid">
 
     {% if score_type.max_public_score > 0 %}
@@ -222,11 +218,7 @@ $(document).ready(function () {
 
     {% if score_type.max_public_score < score_type.max_score %}
         {# Show the tokened score (alone if everything is non-public, or together with the public score). #}
-    {% if is_acmicpc_approximate %}
-        {% set tokened_score_class = get_score_class_from_verdict("Accepted") if tokened_score > 0 else get_score_class_from_verdict("Not Accepted") %}
-    {% else %}
-        {% set tokened_score_class = get_score_class(tokened_score, score_type.max_score, task.score_precision) %}
-    {% endif %}
+    {% set tokened_score_class = get_score_class(tokened_score, score_type.max_score, task.score_precision) %}
     <div id="task_score_tokened"
          class="{{ "span6" if two_task_scores else "span12" }}  well well-small task_score {{ tokened_score_class if can_use_tokens else "undefined" }}">
         <span>
