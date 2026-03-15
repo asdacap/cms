@@ -280,6 +280,13 @@ class SubmissionStatusHandler(ContestHandler):
                         sr.score_details, task.score_precision,
                         translation=self.translation)
 
+            if task.active_dataset.score_type == "ACMICPCApproximate":
+                if data["status"] == SubmissionResult.SCORED:
+                    if sr.score > 0:
+                        data["verdict"] = "Accepted"
+                    else:
+                        data["verdict"] = "Not Accepted"
+
         self.write(data)
 
 

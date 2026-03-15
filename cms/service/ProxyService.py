@@ -100,6 +100,63 @@ def safe_put_data(ranking, resource, data, operation):
         raise CannotSendError(msg)
 
 
+def safe_delete_data(ranking, resource, key, operation):
+    """Delete an entity from ranking using a DELETE request.
+
+    ranking (bytes): the URL of ranking server.
+    resource (bytes): the relative path of the entity type (e.g., "tasks").
+    key (bytes): the key of the entity to delete.
+    operation (unicode): a human-readable description of the operation
+        we're performing (to produce log messages).
+
+    raise (CannotSendError): in case of communication errors.
+
+    """
+    try:
+        url = urljoin(ranking, "%s/%s" % (resource, key))
+        auth = urlsplit(url)
+        res = requests.delete(url,
+                              auth=(auth.username, auth.password),
+                              verify=config.https_certfile)
+    except requests.exceptions.RequestException as error:
+        msg = "%s while %s: %s." % (type(error).__name__, operation, error)
+        logger.warning(msg)
+        raise CannotSendError(msg)
+    if 400 <= res.status_code < 600:
+        msg = "Status %s while %s." % (res.status_code, operation)
+        logger.warning(msg)
+        raise CannotSendError(msg)
+
+
+def safe_get_data(ranking, resource, operation):
+    """Fetch entities from ranking using a GET request.
+
+    ranking (bytes): the URL of ranking server.
+    resource (bytes): the relative path of the entity type (e.g., "tasks").
+    operation (unicode): a human-readable description of the operation
+        we're performing (to produce log messages).
+
+    return (dict): the JSON-decoded response data.
+    raise (CannotSendError): in case of communication errors.
+
+    """
+    try:
+        url = urljoin(ranking, resource)
+        auth = urlsplit(url)
+        res = requests.get(url,
+                            auth=(auth.username, auth.password),
+                            verify=config.https_certfile)
+    except requests.exceptions.RequestException as error:
+        msg = "%s while %s: %s." % (type(error).__name__, operation, error)
+        logger.warning(msg)
+        raise CannotSendError(msg)
+    if 400 <= res.status_code < 600:
+        msg = "Status %s while %s." % (res.status_code, operation)
+        logger.warning(msg)
+        raise CannotSendError(msg)
+    return json.loads(res.text)
+
+
 def safe_url(url):
     """Return a sanitized URL without sensitive information.
 
@@ -344,7 +401,8 @@ class ProxyService(TriggeredService):
                 "score_precision": contest.score_precision,
                 "freeze_time": int(make_timestamp(contest.freeze_time))
                                if contest.freeze_time is not None else None,
-                "unfreeze": contest.unfreeze}
+                "unfreeze": contest.unfreeze,
+                "hide_tasks": False}
 
             users = dict()
             teams = dict()
@@ -626,9 +684,12 @@ class ProxyService(TriggeredService):
         A utility RPC method that updates the ranking server with all
         scored submission data. This is useful for manually syncing the
         ranking server when needed (e.g., after a ranking server restart).
+        This also clears obsolete entities (tasks, users, teams) that
+        no longer exist in the CMS database.
 
         """
         logger.info("Refreshing ranking server with all submissions.")
+        self._clear_obsolete_entities()
         self.reinitialize()
 
         with SessionGen() as session:
@@ -647,3 +708,99 @@ class ProxyService(TriggeredService):
                         self.enqueue(operation)
 
         logger.info("Ranking server refresh complete.")
+
+    def _clear_obsolete_entities(self):
+        """Clear obsolete entities from all ranking servers.
+
+        Delete tasks, users, teams, and their associated data from the
+        ranking servers if they no longer exist in the CMS database.
+        This prevents duplicate columns when tasks are renamed or deleted.
+
+        """
+        logger.info("Clearing obsolete entities from ranking servers.")
+
+        with SessionGen() as session:
+            contest = Contest.get_from_id(self.contest_id, session)
+            if contest is None:
+                logger.error("Contest %s not found.", self.contest_id)
+                return
+
+            contest_id_encoded = encode_id(contest.name)
+
+            tasks_in_db = set(encode_id(task.name) for task in contest.tasks)
+            users_in_db = set()
+            teams_in_db = set()
+            for participation in contest.participations:
+                if not participation.hidden:
+                    users_in_db.add(encode_id(participation.user.username))
+                    if participation.team is not None:
+                        teams_in_db.add(encode_id(participation.team.code))
+
+            for ranking in config.rankings:
+                try:
+                    tasks_on_ranking = safe_get_data(
+                        ranking, "tasks/", "getting tasks from ranking")
+                    for task_key in tasks_on_ranking:
+                        task_data = tasks_on_ranking[task_key]
+                        if task_data.get("contest") == contest_id_encoded:
+                            if task_key not in tasks_in_db:
+                                logger.info("Deleting obsolete task %s from ranking.", task_key)
+                                safe_delete_data(
+                                    ranking, "tasks", task_key,
+                                    "deleting obsolete task %s" % task_key)
+
+                    users_on_ranking = safe_get_data(
+                        ranking, "users/", "getting users from ranking")
+                    for user_key in users_on_ranking:
+                        if user_key not in users_in_db:
+                            logger.info("Deleting obsolete user %s from ranking.", user_key)
+                            safe_delete_data(
+                                ranking, "users", user_key,
+                                "deleting obsolete user %s" % user_key)
+
+                    teams_on_ranking = safe_get_data(
+                        ranking, "teams/", "getting teams from ranking")
+                    for team_key in teams_on_ranking:
+                        if team_key not in teams_in_db:
+                            logger.info("Deleting obsolete team %s from ranking.", team_key)
+                            safe_delete_data(
+                                ranking, "teams", team_key,
+                                "deleting obsolete team %s" % team_key)
+
+                except CannotSendError as e:
+                    logger.warning("Failed to clear obsolete entities from ranking %s: %s",
+                                   ranking, e)
+
+    @rpc_method
+    def set_hide_tasks(self, hide_tasks):
+        """Set the hide_tasks flag for the contest on all ranking servers.
+
+        hide_tasks (bool): whether to hide tasks in the ranking view.
+
+        """
+        logger.info("Setting hide_tasks=%s for contest %s.", hide_tasks, self.contest_id)
+
+        with SessionGen() as session:
+            contest = Contest.get_from_id(self.contest_id, session)
+
+            if contest is None:
+                logger.error("Contest %s not found.", self.contest_id)
+                raise KeyError("Contest not found.")
+
+            contest_id = encode_id(contest.name)
+            contest_data = {
+                "name": contest.description,
+                "begin": int(make_timestamp(contest.start)),
+                "end": int(make_timestamp(contest.stop)),
+                "score_precision": contest.score_precision,
+                "freeze_time": int(make_timestamp(contest.freeze_time))
+                               if contest.freeze_time is not None else None,
+                "hide_tasks": hide_tasks}
+
+            for ranking in config.rankings:
+                try:
+                    safe_put_data(ranking, "contests/%s" % contest_id,
+                                  contest_data, "setting hide_tasks")
+                except CannotSendError as e:
+                    logger.warning("Failed to set hide_tasks on ranking %s: %s",
+                                   ranking, e)

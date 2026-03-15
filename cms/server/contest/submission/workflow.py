@@ -35,7 +35,7 @@ from cms.db import Submission, File, UserTestManager, UserTestFile, UserTest
 from cmscommon.datetime import make_timestamp
 from .check import check_max_number, check_min_interval
 from .file_matching import InvalidFilesOrLanguage, match_files_and_language
-from .file_retrieval import InvalidArchive, extract_files_from_tornado
+from .file_retrieval import InvalidArchive, extract_files_from_tornado, is_valid_filename
 from .utils import fetch_file_digests_from_previous_submission, StorageFailed, \
     store_local_copy
 
@@ -177,6 +177,13 @@ def accept_submission(sql_session, file_cacher, participation, task, timestamp,
                 original_filename = codename_to_filename[codename]
                 base = os.path.splitext(original_filename)[0]
                 new_codename = base + ".%l"
+                if not is_valid_filename(new_codename):
+                    raise UnacceptableSubmission(
+                        N_("Invalid filename!"),
+                        N_("Filename '%s' contains invalid characters. "
+                           "Only letters, numbers, underscores, dots, and "
+                           "dashes are allowed."),
+                        original_filename)
                 renamed_files[new_codename] = content
             else:
                 renamed_files[codename] = content
@@ -376,6 +383,13 @@ def accept_user_test(sql_session, file_cacher, participation, task, timestamp,
                 original_filename = codename_to_filename[codename]
                 base = os.path.splitext(original_filename)[0]
                 new_codename = base + ".%l"
+                if not is_valid_filename(new_codename):
+                    raise UnacceptableUserTest(
+                        N_("Invalid filename!"),
+                        N_("Filename '%s' contains invalid characters. "
+                           "Only letters, numbers, underscores, dots, and "
+                           "dashes are allowed."),
+                        original_filename)
                 renamed_files[new_codename] = content
             else:
                 renamed_files[codename] = content

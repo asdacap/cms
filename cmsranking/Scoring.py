@@ -134,19 +134,20 @@ class Score:
         # Determine if we should append to history
         append_history = False
         if self._score_mode == SCORE_MODE_MAX:
-            # For MAX mode, update if score is better, or if score is same but extra/time changed
-            if score > self.get_score():
+            # For MAX mode, use change.score (this submission's score) for comparison
+            # same logic as code_knights branch
+            if change.score > self.get_score():
                 append_history = True
-            elif score == self.get_score() and change.extra != self.get_extra():
+            elif change.score == self.get_score() and change.extra != self.get_extra():
                 append_history = True
-            elif score == self.get_score() and change.time > self.get_time():
+            elif change.score == self.get_score() and change.time > self.get_time():
                 append_history = True
         else:
             # For other modes, update if score changed
             append_history = (score != self.get_score())
 
         if append_history:
-            self._history.append((change.time, score, change.extra or []))
+            self._history.append((change.time, change.score, change.extra or []))
 
     def get_last(self):
         """Return the last submitted submission."""

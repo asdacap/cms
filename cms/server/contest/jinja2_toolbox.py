@@ -26,7 +26,7 @@ useful specifically to the use that CWS makes of it.
 from jinja2 import contextfilter, PackageLoader
 
 from cms.server.jinja2_toolbox import GLOBAL_ENVIRONMENT
-from .formatting import format_token_rules, get_score_class
+from .formatting import format_token_rules, get_score_class, get_score_class_from_verdict
 
 
 def extract_token_params(o):
@@ -46,6 +46,7 @@ def wrapped_format_token_rules(ctx, tokens, t_type=None):
 
 def instrument_formatting_toolbox(env):
     env.globals["get_score_class"] = get_score_class
+    env.globals["get_score_class_from_verdict"] = get_score_class_from_verdict
 
     env.filters["format_token_rules"] = wrapped_format_token_rules
 

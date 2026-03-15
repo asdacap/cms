@@ -52,8 +52,29 @@ var Scoreboard = new function () {
         DataStore.rank_events.add(self.rank_handler);
         DataStore.select_events.add(self.select_handler);
 
+        // Regenerate scoreboard when hide_tasks changes on a contest
+        DataStore.contest_update.add(self.contest_update_handler);
+
         // Apply initial user filtering
         self.filter_users();
+    };
+
+    self.contest_update_handler = function (key, old_data, data) {
+        // Regenerate the scoreboard if hide_tasks changed
+        if (old_data["hide_tasks"] !== data["hide_tasks"]) {
+            self.generate();
+            // Re-add all users to the body
+            self.tbody_el.empty();
+            self.user_list = [];
+            for (var u_id in DataStore.users) {
+                var user = DataStore.users[u_id];
+                user["row"] = $(self.make_row(user))[0];
+                self.user_list.push(user);
+            }
+            self.sort();
+            // Re-apply user filtering
+            self.filter_users();
+        }
     };
 
 
@@ -252,13 +273,16 @@ var Scoreboard = new function () {
             var contest = contests[i];
             var c_id = contest["key"];
 
-            var tasks = contest["tasks"];
-            for (var j in tasks) {
-                var task = tasks[j];
-                var t_id = task["key"];
+            // Skip task columns if hide_tasks is enabled for this contest
+            if (!contest["hide_tasks"]) {
+                var tasks = contest["tasks"];
+                for (var j in tasks) {
+                    var task = tasks[j];
+                    var t_id = task["key"];
 
-                result += " \
+                    result += " \
 <col class=\"score task\" data-task=\"" + t_id + "\" data-sort_key=\"t_" + t_id + "\"/> <col/><col/>";
+                }
             }
 
             result += " \
@@ -305,16 +329,19 @@ var Scoreboard = new function () {
             var contest = contests[i];
             var c_id = contest["key"];
 
-            var tasks = contest["tasks"];
-            for (var j in tasks) {
-                var task = tasks[j];
-                var t_id = task["key"];
+            // Skip task columns if hide_tasks is enabled for this contest
+            if (!contest["hide_tasks"]) {
+                var tasks = contest["tasks"];
+                for (var j in tasks) {
+                    var task = tasks[j];
+                    var t_id = task["key"];
 
-                var task_label = Config.show_full_task_name
-                    ? escapeHTML(task["name"])
-                    : "<abbr title=\"" + escapeHTML(task["name"]) + "\">" + escapeHTML(task["short_name"]) + "</abbr>";
-                result += " \
+                    var task_label = Config.show_full_task_name
+                        ? escapeHTML(task["name"])
+                        : "<abbr title=\"" + escapeHTML(task["name"]) + "\">" + escapeHTML(task["short_name"]) + "</abbr>";
+                    result += " \
     <th colspan=\"3\" class=\"score task\" data-task=\"" + t_id + "\" data-sort_key=\"t_" + t_id + "\">" + task_label + "</th>";
+                }
             }
 
             result += " \
@@ -388,11 +415,14 @@ var Scoreboard = new function () {
             var contest = contests[i];
             var c_id = contest["key"];
 
-            var tasks = contest["tasks"];
-            for (var j in tasks) {
-                var task = tasks[j];
+            // Skip task columns if hide_tasks is enabled for this contest
+            if (!contest["hide_tasks"]) {
+                var tasks = contest["tasks"];
+                for (var j in tasks) {
+                    var task = tasks[j];
 
-                result += self.draw_score_cell(user, task);
+                    result += self.draw_score_cell(user, task);
+                }
             }
 
             var score_class = self.get_score_class(user["c_" + c_id], contest["max_score"]);

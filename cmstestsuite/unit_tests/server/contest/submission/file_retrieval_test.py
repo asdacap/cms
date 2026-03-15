@@ -26,6 +26,7 @@ from unittest.mock import patch
 
 from cms.server.contest.submission import ReceivedFile, InvalidArchive, \
     extract_files_from_archive, extract_files_from_tornado
+from cms.server.contest.submission.file_retrieval import is_valid_filename
 
 
 class TestExtractFilesFromArchive(unittest.TestCase):
@@ -213,6 +214,69 @@ class TestExtractFilesFromTornado(unittest.TestCase):
             extract_files_from_tornado(tornado_files)
         self.extract_files_from_archive.assert_called_once_with(
             b"this is not a valid archive")
+
+
+class TestIsValidFilename(unittest.TestCase):
+
+    def test_valid_simple_filename(self):
+        self.assertTrue(is_valid_filename("simple.py"))
+        self.assertTrue(is_valid_filename("main.c"))
+        self.assertTrue(is_valid_filename("solution.cpp"))
+
+    def test_valid_filename_with_extensions(self):
+        self.assertTrue(is_valid_filename("file.txt"))
+        self.assertTrue(is_valid_filename("archive.tar.gz"))
+        self.assertTrue(is_valid_filename("data.json"))
+
+    def test_valid_filename_with_underscore(self):
+        self.assertTrue(is_valid_filename("my_file.py"))
+        self.assertTrue(is_valid_filename("__init__.py"))
+        self.assertTrue(is_valid_filename("test_file_name.c"))
+
+    def test_valid_filename_with_dash(self):
+        self.assertTrue(is_valid_filename("my-file.py"))
+        self.assertTrue(is_valid_filename("test-case.cpp"))
+        self.assertTrue(is_valid_filename("a-b-c.d"))
+
+    def test_valid_filename_with_numbers(self):
+        self.assertTrue(is_valid_filename("file1.py"))
+        self.assertTrue(is_valid_filename("test2.c"))
+        self.assertTrue(is_valid_filename("123.cpp"))
+
+    def test_valid_complex_filename(self):
+        self.assertTrue(is_valid_filename("my_file-123.py"))
+        self.assertTrue(is_valid_filename("test_v2.0.c"))
+        self.assertTrue(is_valid_filename("a.b_c-d"))
+
+    def test_invalid_filename_with_space(self):
+        self.assertFalse(is_valid_filename("my file.py"))
+        self.assertFalse(is_valid_filename("test file.c"))
+        self.assertFalse(is_valid_filename("hello world.cpp"))
+
+    def test_invalid_filename_with_special_chars(self):
+        self.assertFalse(is_valid_filename("test@file.py"))
+        self.assertFalse(is_valid_filename("file(name).c"))
+        self.assertFalse(is_valid_filename("hello&world.cpp"))
+        self.assertFalse(is_valid_filename("test!file.py"))
+        self.assertFalse(is_valid_filename("file#1.c"))
+        self.assertFalse(is_valid_filename("test$file.cpp"))
+        self.assertFalse(is_valid_filename("file%2.py"))
+
+    def test_invalid_filename_with_unicode(self):
+        self.assertFalse(is_valid_filename("tëst.py"))
+        self.assertFalse(is_valid_filename("файл.c"))
+        self.assertFalse(is_valid_filename("中文.cpp"))
+
+    def test_invalid_filename_with_path_separators(self):
+        self.assertFalse(is_valid_filename("dir/file.py"))
+        self.assertFalse(is_valid_filename("dir\\file.c"))
+        self.assertFalse(is_valid_filename("path/to/file.cpp"))
+
+    def test_invalid_empty_filename(self):
+        self.assertFalse(is_valid_filename(""))
+
+    def test_none_filename(self):
+        self.assertTrue(is_valid_filename(None))
 
 
 if __name__ == "__main__":
