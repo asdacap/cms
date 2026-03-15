@@ -72,5 +72,12 @@ class User(Entity):
         return result
 
     def consistent(self, stores):
-        return self.team is None or "team" not in stores \
-               or self.team in stores["team"]
+        if self.team is not None and "team" not in stores \
+                and self.team not in stores["team"]:
+            return False
+        # Validate that all tags exist
+        if "tag" in stores:
+            for tag_id in self.tags:
+                if tag_id not in stores["tag"]:
+                    return False
+        return True

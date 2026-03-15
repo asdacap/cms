@@ -55,7 +55,8 @@ __all__ = [
     # contest
     "Contest", "Announcement",
     # user
-    "User", "Team", "Participation", "Message", "Question",
+    "User", "Team", "Tag", "Participation", "Message", "Question",
+    "participation_tags",
     # admin
     "Admin",
     # task
@@ -81,7 +82,7 @@ __all__ = [
 
 # Instantiate or import these objects.
 
-version = 44
+version = 45
 
 engine = create_engine(config.database, echo=config.database_debug,
                        pool_timeout=60, pool_recycle=120)
@@ -97,7 +98,8 @@ from .base import Base
 from .fsobject import FSObject, LargeObject
 from .admin import Admin
 from .contest import Contest, Announcement
-from .user import User, Team, Participation, Message, Question
+from .user import User, Team, Tag, Participation, Message, Question, \
+    participation_tags
 from .task import Task, Statement, Attachment, Dataset, Manager, Testcase
 from .submission import Submission, File, Token, SubmissionResult, \
     Executable, Evaluation

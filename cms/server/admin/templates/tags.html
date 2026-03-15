@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block core %}
+
+<div class="core_title">
+  <h1>Tags list</h1>
+</div>
+
+<div id="details">
+  <table class="bordered">
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Name</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in tag_list|sort(attribute="code") %}
+      <tr>
+        <td><a href="{{ url("tag", t.id) }}">{{ t.code }}</a></td>
+        <td>{{ t.name }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock core %}

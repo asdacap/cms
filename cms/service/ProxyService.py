@@ -41,7 +41,7 @@ from sqlalchemy import not_
 
 from cms import config
 from cms.db import SessionGen, Contest, Participation, Task, Submission, \
-    get_submissions
+    Tag, get_submissions
 from cms.io import Executor, QueueItem, TriggeredService, rpc_method
 from cmscommon.datetime import make_timestamp
 
@@ -147,9 +147,10 @@ class ProxyExecutor(Executor):
     CONTEST_TYPE = 0
     TASK_TYPE = 1
     TEAM_TYPE = 2
-    USER_TYPE = 3
-    SUBMISSION_TYPE = 4
-    SUBCHANGE_TYPE = 5
+    TAG_TYPE = 3
+    USER_TYPE = 4
+    SUBMISSION_TYPE = 5
+    SUBCHANGE_TYPE = 6
 
     # The resource paths for the different entity types, relative to
     # the self.ranking URL.
@@ -157,6 +158,7 @@ class ProxyExecutor(Executor):
         "contests",
         "tasks",
         "teams",
+        "tags",
         "users",
         "submissions",
         "subchanges"]
@@ -319,9 +321,9 @@ class ProxyService(TriggeredService):
 
         It's data that's supposed to be sent before the contest, that's
         needed to understand what we're talking about when we send
-        submissions: contest, users, tasks.
+        submissions: contest, users, tasks, tags.
 
-        No support for teams, flags and faces.
+        No support for flags and faces.
 
         """
         logger.info("Initializing rankings.")
@@ -341,20 +343,29 @@ class ProxyService(TriggeredService):
                 "end": int(make_timestamp(contest.stop)),
                 "score_precision": contest.score_precision,
                 "freeze_time": int(make_timestamp(contest.freeze_time))
-                               if contest.freeze_time is not None else None}
+                               if contest.freeze_time is not None else None,
+                "unfreeze": contest.unfreeze}
 
             users = dict()
             teams = dict()
+            tags = dict()
 
             for participation in contest.participations:
                 user = participation.user
                 team = participation.team
                 if not participation.hidden:
+                    # Collect tags from this participation
+                    participation_tags = []
+                    for tag in participation.tags:
+                        tags[encode_id(tag.code)] = {"name": tag.name}
+                        participation_tags.append(encode_id(tag.code))
+
                     users[encode_id(user.username)] = {
                         "f_name": user.first_name,
                         "l_name": user.last_name,
                         "team": encode_id(team.code)
                                 if team is not None else None,
+                        "tags": participation_tags,
                     }
                     if team is not None:
                         teams[encode_id(team.code)] = {
@@ -379,6 +390,7 @@ class ProxyService(TriggeredService):
         self.enqueue(ProxyOperation(ProxyExecutor.CONTEST_TYPE,
                                     {contest_id: contest_data}))
         self.enqueue(ProxyOperation(ProxyExecutor.TEAM_TYPE, teams))
+        self.enqueue(ProxyOperation(ProxyExecutor.TAG_TYPE, tags))
         self.enqueue(ProxyOperation(ProxyExecutor.USER_TYPE, users))
         self.enqueue(ProxyOperation(ProxyExecutor.TASK_TYPE, tasks))
 

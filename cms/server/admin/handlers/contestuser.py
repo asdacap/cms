@@ -43,7 +43,7 @@ try:
 except ImportError:
     import tornado.web as tornado_web
 
-from cms.db import Contest, Message, Participation, Submission, User, Team
+from cms.db import Contest, Message, Participation, Submission, User, Team, Tag
 from cmscommon.datetime import make_datetime
 from .base import BaseHandler, require_permission
 
@@ -197,6 +197,7 @@ class ParticipationHandler(BaseHandler):
         self.r_params["participation"] = participation
         self.r_params["selected_user"] = participation.user
         self.r_params["teams"] = self.sql_session.query(Team).all()
+        self.r_params["tag_list"] = self.sql_session.query(Tag).all()
         self.render("participation.html", **self.r_params)
 
     @require_permission(BaseHandler.PERMISSION_ALL)
@@ -242,6 +243,16 @@ class ParticipationHandler(BaseHandler):
                 participation.team = team
             else:
                 participation.team = None
+
+            # Update the tags
+            tag_ids = self.get_arguments("tags")
+            participation.tags = []
+            for tag_id in tag_ids:
+                tag = self.sql_session.query(Tag)\
+                              .filter(Tag.id == int(tag_id))\
+                              .first()
+                if tag is not None:
+                    participation.tags.append(tag)
 
         except Exception as error:
             self.service.add_notification(

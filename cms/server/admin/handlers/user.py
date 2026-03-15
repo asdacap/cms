@@ -27,7 +27,7 @@
 
 """
 
-from cms.db import Contest, Participation, Submission, Team, User
+from cms.db import Contest, Participation, Submission, Team, Tag, User
 from cmscommon.datetime import make_datetime
 
 from .base import BaseHandler, SimpleHandler, require_permission
@@ -216,6 +216,91 @@ class AddTeamHandler(SimpleHandler("add_team.html", permission_all=True)):
             self.service.proxy_service.reinitialize()
 
         # In case other teams need to be added.
+        self.redirect(fallback_page)
+
+
+class TagsHandler(BaseHandler):
+    """List all tags."""
+
+    @require_permission(BaseHandler.AUTHENTICATED)
+    def get(self):
+        self.r_params = self.render_params()
+        self.r_params["tags"] = self.sql_session.query(Tag).all()
+        self.render("tags.html", **self.r_params)
+
+
+class TagHandler(BaseHandler):
+    """Manage a single tag.
+
+    If referred by GET, this handler will return a pre-filled HTML form.
+    If referred by POST, this handler will sync the tag data with the form's.
+    """
+    def get(self, tag_id):
+        tag = self.safe_get_item(Tag, tag_id)
+
+        self.r_params = self.render_params()
+        self.r_params["tag"] = tag
+        self.render("tag.html", **self.r_params)
+
+    def post(self, tag_id):
+        fallback_page = self.url("tag", tag_id)
+
+        tag = self.safe_get_item(Tag, tag_id)
+
+        try:
+            attrs = dict()
+
+            self.get_string(attrs, "code")
+            self.get_string(attrs, "name")
+
+            assert attrs.get("code") is not None, \
+                "No tag code specified."
+
+            # Update the tag.
+            tag.code = attrs["code"]
+            tag.name = attrs["name"]
+
+        except Exception as error:
+            self.service.add_notification(
+                make_datetime(), "Invalid field(s)", repr(error))
+            self.redirect(fallback_page)
+            return
+
+        if self.try_commit():
+            # Update the tag on RWS.
+            self.service.proxy_service.reinitialize()
+        self.redirect(fallback_page)
+
+
+class AddTagHandler(SimpleHandler("add_tag.html", permission_all=True)):
+    @require_permission(BaseHandler.PERMISSION_ALL)
+    def post(self):
+        fallback_page = self.url("tags", "add")
+
+        try:
+            attrs = dict()
+
+            self.get_string(attrs, "code")
+            self.get_string(attrs, "name")
+
+            assert attrs.get("code") is not None, \
+                "No tag code specified."
+
+            # Create the tag.
+            tag = Tag(**attrs)
+            self.sql_session.add(tag)
+
+        except Exception as error:
+            self.service.add_notification(
+                make_datetime(), "Invalid field(s)", repr(error))
+            self.redirect(fallback_page)
+            return
+
+        if self.try_commit():
+            # Create the tag on RWS.
+            self.service.proxy_service.reinitialize()
+
+        # In case other tags need to be added.
         self.redirect(fallback_page)
 
 

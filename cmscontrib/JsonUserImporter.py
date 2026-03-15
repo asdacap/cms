@@ -37,7 +37,7 @@ import logging
 from cms import utf8_decoder, config
 from cmsranking import Tag as RankingTag
 from cmsranking import User as RankingUser
-from cms.db import SessionGen, User, Contest, Participation, Team, ask_for_contest
+from cms.db import SessionGen, User, Contest, Participation, Team, Tag, ask_for_contest
 from cms.service.ProxyService import encode_id, safe_put_data, CannotSendError
 
 logger = logging.getLogger(__name__)
@@ -78,6 +78,17 @@ def main():
     with SessionGen() as session:
         contest = Contest.get_from_id(args.contest_id, session)
 
+        # Process tags: create them in DB if they don't exist
+        tag_objects = {}
+        if "tags" in obj:
+            for tag_code, tag_name in obj["tags"].items():
+                tag = session.query(Tag).filter(Tag.code == tag_code).first()
+                if tag is None:
+                    tag = Tag(code=tag_code, name=tag_name)
+                    session.add(tag)
+                    logger.info("Created tag '%s' (%s)", tag_code, tag_name)
+                tag_objects[tag_code] = tag
+
         for username in obj["users"]:
             userob = obj["users"][username]
             user = None
@@ -112,9 +123,20 @@ def main():
                 .first()
             if participation is None:
                 logger.info("Assigning %s to contest", username)
-                session.add(Participation(contest=contest, user=user, team=team, hidden=False, unrestricted=False))
+                participation = Participation(contest=contest, user=user, team=team, hidden=False, unrestricted=False)
+                session.add(participation)
             else:
                 participation.team = team
+
+            # Assign tags to participation
+            if "tags" in userob:
+                participation.tags = []
+                for tag_code in userob["tags"]:
+                    if tag_code in tag_objects:
+                        participation.tags.append(tag_objects[tag_code])
+                    else:
+                        logger.warning("Tag '%s' not found for user %s.", tag_code, username)
+
             session.commit()
 
     if not args.skip_ranking:

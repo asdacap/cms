@@ -30,7 +30,7 @@ from datetime import timedelta
 from sqlalchemy.dialects.postgresql import ARRAY, CIDR
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import Column, ForeignKey, CheckConstraint, \
-    UniqueConstraint
+    UniqueConstraint, Table
 from sqlalchemy.types import Boolean, Integer, String, Unicode, DateTime, \
     Interval
 
@@ -141,6 +141,50 @@ class Team(Base):
     # TODO: (hopefully, the same will apply for faces in User).
 
 
+class Tag(Base):
+    """Class to store a tag for user categorization.
+
+    A tag is a way of labeling participations in a contest.
+    This is used for display purposes in RWS (e.g., "guest", "newbie").
+
+    """
+
+    __tablename__ = 'tags'
+
+    # Auto increment primary key.
+    id = Column(
+        Integer,
+        primary_key=True)
+
+    # Tag code (machine-readable identifier, e.g., "guest", "newbie")
+    code = Column(
+        Codename,
+        nullable=False,
+        unique=True)
+
+    # Human readable tag name (e.g., "Guest", "Newbie")
+    name = Column(
+        Unicode,
+        nullable=False)
+
+    participations = relationship(
+        "Participation",
+        secondary="participation_tags",
+        back_populates="tags")
+
+
+# Association table for the many-to-many relationship between
+# Participation and Tag.
+participation_tags = Table(
+    'participation_tags', Base.metadata,
+    Column('participation_id', Integer,
+           ForeignKey('participations.id', onupdate="CASCADE", ondelete="CASCADE"),
+           primary_key=True),
+    Column('tag_id', Integer,
+           ForeignKey('tags.id', onupdate="CASCADE", ondelete="RESTRICT"),
+           primary_key=True))
+
+
 class Participation(Base):
     """Class to store a single participation of a user in a contest.
 
@@ -237,6 +281,12 @@ class Participation(Base):
         nullable=True)
     team = relationship(
         Team,
+        back_populates="participations")
+
+    # Tags associated with this participation (for display in RWS).
+    tags = relationship(
+        "Tag",
+        secondary="participation_tags",
         back_populates="participations")
 
     # These one-to-many relationships are the reversed directions of

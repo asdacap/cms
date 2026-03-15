@@ -50,7 +50,7 @@ from sqlalchemy.orm import subqueryload
 
 from cms import __version__, config
 from cms.db import Admin, Contest, Participation, Question, Submission, \
-    SubmissionResult, Task, Team, User, UserTest
+    SubmissionResult, Tag, Task, Team, User, UserTest
 from cms.grading.scoretypes import get_score_type_class
 from cms.grading.tasktypes import get_task_type_class
 from cms.server import CommonRequestHandler, FileHandlerMixin
@@ -323,6 +323,7 @@ class BaseHandler(CommonRequestHandler):
         params["task_list"] = self.sql_session.query(Task).all()
         params["user_list"] = self.sql_session.query(User).all()
         params["team_list"] = self.sql_session.query(Team).all()
+        params["tag_list"] = self.sql_session.query(Tag).all()
         return params
 
     def write_error(self, status_code, **kwargs):

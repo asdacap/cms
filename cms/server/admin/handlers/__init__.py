@@ -98,7 +98,10 @@ from .user import \
     AddParticipationHandler, \
     EditParticipationHandler, \
     AddTeamHandler, \
-    TeamHandler
+    TeamHandler, \
+    TagsHandler, \
+    TagHandler, \
+    AddTagHandler
 from .usertest import \
     UserTestHandler, \
     UserTestFileHandler
@@ -188,15 +191,18 @@ HANDLERS = [
     (r"/dataset/([0-9]+)/testcase/([0-9]+)/delete", DeleteTestcaseHandler),
     (r"/dataset/([0-9]+)/testcases/download", DownloadTestcasesHandler),
 
-    # Users/Teams
+    # Users/Teams/Tags
 
     (r"/users", UserListHandler),
     (r"/users/([0-9]+)/remove", RemoveUserHandler),
     (r"/teams", SimpleHandler("teams.html")),
+    (r"/tags", TagsHandler),
     (r"/users/add", AddUserHandler),
     (r"/teams/add", AddTeamHandler),
+    (r"/tags/add", AddTagHandler),
     (r"/user/([0-9]+)", UserHandler),
     (r"/team/([0-9]+)", TeamHandler),
+    (r"/tag/([0-9]+)", TagHandler),
     (r"/user/([0-9]+)/add_participation", AddParticipationHandler),
     (r"/user/([0-9]+)/edit_participation", EditParticipationHandler),
 

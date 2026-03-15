@@ -79,6 +79,19 @@ function update_additional_answer(element, invoker)
       </tr>
       <tr>
         <td>
+          <span class="info" title="Tags for this contestant in the external ranking (e.g., guest, newbie)."></span>
+          Tags
+        </td>
+        <td>
+          <select name="tags" multiple size="5">
+            {% for t in tag_list %}
+            <option value="{{ t.id }}" {% if t in participation.tags %}selected{% endif %}>{{ t.code }} ({{ t.name }})</option>
+            {% endfor %}
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td>
           <span class="info" title="Contestant password for this contest. If empty, the contestant's main password is used.
                                      Caution: stored in plain text."></span>
           Password
