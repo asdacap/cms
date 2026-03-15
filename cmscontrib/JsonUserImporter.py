@@ -35,6 +35,7 @@ import json
 import logging
 
 from cms import utf8_decoder, config
+from cmscommon.crypto import build_password, generate_random_password
 from cmsranking import Tag as RankingTag
 from cmsranking import User as RankingUser
 from cms.db import SessionGen, User, Contest, Participation, Team, Tag, ask_for_contest
@@ -99,14 +100,15 @@ def main():
                 user.first_name = userob.get("first_name", user.first_name)
                 user.last_name = userob.get("last_name", user.last_name)
                 user.username = userob.get("username", user.username)
-                user.password = userob.get("password", user.password)
+                if "password" in userob:
+                    user.password = build_password(userob["password"])
                 user.email = userob.get("email", user.email)
             else:
                 logger.info("Adding %s ", username)
                 user = User(first_name=userob.get("first_name", ""),
                             last_name=userob.get("last_name", ""),
                             username=username,
-                            password=userob.get("password", ""),
+                            password=build_password(userob["password"]) if "password" in userob else build_password(generate_random_password()),
                             email=userob.get("email", ""))
                 session.add(user)
 
