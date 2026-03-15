@@ -138,6 +138,7 @@ submissions_download_allowed (bool): whether to allow users to download
 {% set score_type = get_score_type(dataset=task.active_dataset) %}
 {% set sr = s.get_result(task.active_dataset) or undefined %}
 {% set status = sr.get_status() if sr is defined else SubmissionResult.COMPILING  %}
+{% set is_acmicpc_approximate = task.active_dataset.score_type == "ACMICPCApproximate" %}
 <tr data-submission="{{ s_num }}" data-status="{{ status }}">
 {% if show_date %}
     <td class="datetime">{{ s.timestamp|format_datetime }}</td>
@@ -164,9 +165,16 @@ submissions_download_allowed (bool): whether to allow users to download
     </td>
 {% if score_type is defined and score_type.max_public_score > 0 %}
     {% if status == SubmissionResult.SCORED %}
+    {% if is_acmicpc_approximate %}
+    {% set score_message = score_type.format_score(sr.public_score, score_type.max_public_score, sr.public_score_details, task.score_precision, translation=translation) %}
+    <td class="public_score {{ get_score_class_from_verdict(score_message) }}">
+        {{ score_message }}
+    </td>
+    {% else %}
     <td class="public_score {{ get_score_class(sr.public_score, score_type.max_public_score, task.score_precision) }}">
         {{ score_type.format_score(sr.public_score, score_type.max_public_score, sr.public_score_details, task.score_precision, translation=translation) }}
     </td>
+    {% endif %}
     {% else %}
     <td class="public_score undefined">
         {% trans %}N/A{% endtrans %}
@@ -175,9 +183,16 @@ submissions_download_allowed (bool): whether to allow users to download
 {% endif %}
 {% if score_type is defined and score_type.max_public_score < score_type.max_score %}
     {% if status == SubmissionResult.SCORED and (s.token is not none or actual_phase == 3) %}
+    {% if is_acmicpc_approximate %}
+    {% set score_message = score_type.format_score(sr.score, score_type.max_score, sr.score_details, task.score_precision, translation=translation) %}
+    <td class="total_score {{ get_score_class_from_verdict(score_message) }}">
+        {{ score_message }}
+    </td>
+    {% else %}
     <td class="total_score {{ get_score_class(sr.score, score_type.max_score, task.score_precision) }}">
         {{ score_type.format_score(sr.score, score_type.max_score, sr.score_details, task.score_precision, translation=translation) }}
     </td>
+    {% endif %}
     {% else %}
     <td class="total_score undefined">
         {% trans %}N/A{% endtrans %}

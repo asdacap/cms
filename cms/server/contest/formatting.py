@@ -143,3 +143,17 @@ def get_score_class(score, max_score, score_precision):
         return "score_100"
     else:
         return "score_0_100"
+
+
+def get_score_class_from_verdict(verdict):
+    """Return a CSS class based on verdict for ACMICPCApproximate.
+
+    verdict (str): the verdict string ("Accepted" or other).
+
+    return (unicode): class name
+
+    """
+    if verdict == "Accepted":
+        return "score_100"
+    else:
+        return "score_0"
