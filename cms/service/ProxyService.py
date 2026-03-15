@@ -443,6 +443,7 @@ class ProxyService(TriggeredService):
                     "extra_headers": score_type.ranking_headers,
                     "score_precision": task.score_precision,
                     "score_mode": task.score_mode,
+                    "score_type": task.active_dataset.score_type,
                 }
 
         self.enqueue(ProxyOperation(ProxyExecutor.CONTEST_TYPE,
