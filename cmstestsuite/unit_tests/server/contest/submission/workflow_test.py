@@ -381,6 +381,18 @@ class TestAcceptSubmission(DatabaseMixin, unittest.TestCase):
             submission, self.timestamp, "MockLanguage",
             {"valid_file.%l": FOO_CONTENT, "bar.%l": BAR_CONTENT}, True)
 
+    def test_success_with_standard_extension_filename(self):
+        self.received_files = [
+            ReceivedFile("foo.%l", "check.cpp", FOO_CONTENT)]
+        self.extract_files_from_tornado.return_value = self.received_files
+
+        with patch.object(config, "dont_change_source_filename", True):
+            submission = self.call()
+
+        self.assertSubmissionIsValid(
+            submission, self.timestamp, "MockLanguage",
+            {"check.%l": FOO_CONTENT, "bar.%l": BAR_CONTENT}, True)
+
 
 class TestAcceptUserTest(DatabaseMixin, unittest.TestCase):
 
@@ -759,6 +771,20 @@ class TestAcceptUserTest(DatabaseMixin, unittest.TestCase):
         self.assertUserTestIsValid(
             user_test, self.timestamp, "MockLanguage",
             {"valid_file.%l": FOO_CONTENT, "bar.%l": BAR_CONTENT},
+            {"spammock.1": SPAM_CONTENT, "hammock.1": HAM_CONTENT},
+            INPUT_CONTENT)
+
+    def test_success_with_standard_extension_filename(self):
+        self.received_files = [
+            ReceivedFile("foo.%l", "check.cpp", FOO_CONTENT)]
+        self.extract_files_from_tornado.return_value = self.received_files
+
+        with patch.object(config, "dont_change_source_filename", True):
+            user_test = self.call()
+
+        self.assertUserTestIsValid(
+            user_test, self.timestamp, "MockLanguage",
+            {"check.%l": FOO_CONTENT, "bar.%l": BAR_CONTENT},
             {"spammock.1": SPAM_CONTENT, "hammock.1": HAM_CONTENT},
             INPUT_CONTENT)
 
