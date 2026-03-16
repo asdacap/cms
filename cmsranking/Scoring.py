@@ -445,7 +445,7 @@ class ScoringStore:
         # When an entry is popped, push the next entry for that
         # user/task (if any).
         while len(queue) != 0:
-            (time, score), user, task, scoring, index = heapq.heappop(queue)
+            (time, score, extra), user, task, scoring, index = heapq.heappop(queue)
             yield (user, task, time, score)
             if len(scoring._history) > index + 1:
                 heapq.heappush(queue, (scoring._history[index + 1],
