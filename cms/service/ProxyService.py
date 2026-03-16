@@ -37,11 +37,11 @@ import gevent
 import gevent.queue
 import requests
 import requests.exceptions
-from sqlalchemy import not_
+from sqlalchemy import func, not_
 
 from cms import config
 from cms.db import SessionGen, Contest, Participation, Task, Submission, \
-    Tag, get_submissions
+    SubmissionResult, Tag, get_submissions
 from cms.io import Executor, QueueItem, TriggeredService, rpc_method
 from cmscommon.datetime import make_timestamp
 
@@ -477,9 +477,51 @@ class ProxyService(TriggeredService):
 
         # This check is probably useless.
         if submission_result is not None and submission_result.scored():
-            # We're sending the unrounded score to RWS
-            subchange_data["score"] = submission_result.score
-            subchange_data["extra"] = submission_result.ranking_score_details
+
+            with SessionGen() as session:
+                # Not sending data to the ranking if the submission is after
+                # the freeze time. But the ranking board need to know something
+                # was sent. So we will modify the score so that it would be
+                # insignificantly higher than what was previously achieved.
+
+                contest = submission.task.contest
+                score_to_send = submission_result.score
+
+                if contest.freeze_time is not None \
+                        and submission.timestamp > contest.freeze_time \
+                        and (not contest.unfreeze) \
+                        and score_to_send != 0.0:
+
+                    previous_score = session.query(
+                        func.max(SubmissionResult.score)) \
+                        .join(Submission) \
+                        .filter(
+                            Submission.timestamp < submission.timestamp) \
+                        .filter(Submission.task == submission.task) \
+                        .filter(
+                            Submission.participation
+                            == submission.participation) \
+                        .scalar()
+
+                    if previous_score is None:
+                        previous_score = 0.0
+
+                    if submission.task.active_dataset.score_type \
+                            == "ACMICPCApproximate":
+                        # For ACMICPC rule, if previous score is already
+                        # nonzero (correct), then just send 0.0. It should
+                        # be ignored in the ranking server.
+                        if previous_score == 0.0:
+                            score_to_send = previous_score + 0.01
+                        else:
+                            score_to_send = 0.0
+                    else:
+                        score_to_send = previous_score + 0.01
+
+                # We're sending the unrounded score to RWS
+                subchange_data["score"] = score_to_send
+                subchange_data["extra"] = \
+                    submission_result.ranking_score_details
 
         self.scores_sent_to_rankings.add(submission.id)
 
@@ -577,16 +619,6 @@ class ProxyService(TriggeredService):
                             "not sent because it was made outside contest time.",
                             submission_id)
                 return
-
-            # Check if rankings are frozen.
-            contest = submission.task.contest
-            if contest.freeze_time is not None and not contest.unfreeze:
-                from datetime import datetime
-                if datetime.utcnow() >= contest.freeze_time:
-                    logger.info("[submission_scored] Score for submission %d "
-                                "not sent because rankings are frozen.",
-                                submission_id)
-                    return
 
             # Update RWS.
             for operation in self.operations_for_score(submission):
