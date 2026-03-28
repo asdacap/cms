@@ -21,8 +21,11 @@
 
 """
 
+import os
+import shutil
+import tempfile
 import unittest
-from unittest.mock import Mock, call
+from unittest.mock import Mock, call, patch
 
 import gevent
 
@@ -38,6 +41,49 @@ from cmstestsuite.unit_tests.testidgenerator import \
 class TestWorker(unittest.TestCase):
 
     def setUp(self):
+        from cms import Address
+
+        self._tmp_dir = tempfile.mkdtemp()
+        self._cache_dir = os.path.join(self._tmp_dir, "cache")
+        self._temp_dir = os.path.join(self._tmp_dir, "temp")
+
+        def simple_mkdir(path):
+            os.makedirs(path, exist_ok=True)
+            return True
+
+        patcher_addr = patch("cms.io.service.get_service_address")
+        self.get_service_address = patcher_addr.start()
+        self.get_service_address.return_value = Address('127.0.0.1', '12345')
+        self.addCleanup(patcher_addr.stop)
+
+        patcher_rpc_addr = patch("cms.io.rpc.get_service_address")
+        mock_rpc_addr = patcher_rpc_addr.start()
+        mock_rpc_addr.return_value = Address('127.0.0.1', '12345')
+        self.addCleanup(patcher_rpc_addr.stop)
+
+        patcher_mkdir = patch("cms.db.filecacher.mkdir", side_effect=simple_mkdir)
+        patcher_mkdir.start()
+        self.addCleanup(patcher_mkdir.stop)
+
+        patcher_config = patch("cms.db.filecacher.config")
+        mock_config = patcher_config.start()
+        mock_config.cache_dir = self._cache_dir
+        mock_config.temp_dir = self._temp_dir
+        self.addCleanup(patcher_config.stop)
+
+        patcher_io_mkdir = patch("cms.io.service.mkdir", side_effect=simple_mkdir)
+        patcher_io_mkdir.start()
+        self.addCleanup(patcher_io_mkdir.stop)
+
+        patcher_io_config = patch("cms.io.service.config")
+        mock_io_config = patcher_io_config.start()
+        mock_io_config.log_dir = self._tmp_dir
+        mock_io_config.file_log_debug = False
+        mock_io_config.backdoor = False
+        self.addCleanup(patcher_io_config.stop)
+
+        self.addCleanup(lambda: shutil.rmtree(self._tmp_dir, ignore_errors=True))
+
         self.service = Worker(0)
 
     # Testing execute_job.

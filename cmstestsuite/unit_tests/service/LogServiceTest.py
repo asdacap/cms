@@ -21,8 +21,12 @@
 """
 
 import logging
+import os
+import tempfile
 import unittest
+from unittest.mock import patch
 
+from cms import Address
 from cms.service.LogService import LogService
 
 
@@ -36,6 +40,40 @@ class TestLogService(unittest.TestCase):
     EXC_TEXT = "Random exception"
 
     def setUp(self):
+        self._tmp_log_dir = tempfile.mkdtemp()
+
+        def simple_mkdir(path):
+            os.makedirs(path, exist_ok=True)
+            return True
+
+        patcher_addr = patch("cms.io.service.get_service_address")
+        self.get_service_address = patcher_addr.start()
+        self.get_service_address.return_value = Address('127.0.0.1', '12345')
+        self.addCleanup(patcher_addr.stop)
+
+        patcher_mkdir = patch("cms.service.LogService.mkdir", side_effect=simple_mkdir)
+        patcher_mkdir.start()
+        self.addCleanup(patcher_mkdir.stop)
+
+        patcher_config = patch("cms.service.LogService.config")
+        mock_config = patcher_config.start()
+        mock_config.log_dir = self._tmp_log_dir
+        self.addCleanup(patcher_config.stop)
+
+        patcher_io_mkdir = patch("cms.io.service.mkdir", side_effect=simple_mkdir)
+        patcher_io_mkdir.start()
+        self.addCleanup(patcher_io_mkdir.stop)
+
+        patcher_io_config = patch("cms.io.service.config")
+        mock_io_config = patcher_io_config.start()
+        mock_io_config.log_dir = self._tmp_log_dir
+        mock_io_config.file_log_debug = False
+        mock_io_config.backdoor = False
+        self.addCleanup(patcher_io_config.stop)
+
+        import shutil
+        self.addCleanup(lambda: shutil.rmtree(self._tmp_log_dir, ignore_errors=True))
+
         self.service = LogService(0)
 
     def test_last_messages(self):

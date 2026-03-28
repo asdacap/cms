@@ -26,8 +26,10 @@
 import os
 import random
 import shutil
+import tempfile
 import unittest
 from io import BytesIO
+from unittest.mock import patch
 
 # Needs to be first to allow for monkey patching the DB connection string.
 from cmstestsuite.unit_tests.databasemixin import DatabaseMixin
@@ -378,10 +380,23 @@ class TestFileCacherFS(TestFileCacherBase, unittest.TestCase):
     __test__ = True
 
     def setUp(self):
-        super().setUp(FileCacher(path="fs-storage"))
+        self._tmp_dir = tempfile.mkdtemp()
+        self._cache_dir = os.path.join(self._tmp_dir, "cache")
+        self._temp_dir = os.path.join(self._tmp_dir, "temp")
+
+        def simple_mkdir(path):
+            os.makedirs(path, exist_ok=True)
+            return True
+
+        with patch("cms.db.filecacher.mkdir", side_effect=simple_mkdir), \
+             patch("cms.db.filecacher.config") as mock_config:
+            mock_config.cache_dir = self._cache_dir
+            mock_config.temp_dir = self._temp_dir
+            super().setUp(FileCacher(path="fs-storage"))
 
     def tearDown(self):
         shutil.rmtree("fs-storage", ignore_errors=True)
+        shutil.rmtree(self._tmp_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":

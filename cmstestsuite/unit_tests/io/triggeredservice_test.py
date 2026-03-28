@@ -20,6 +20,8 @@
 
 """
 
+import os
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -92,9 +94,34 @@ class FakeTriggeredService(TriggeredService):
 class TestTriggeredService(unittest.TestCase):
 
     def setUp(self):
+        self._tmp_log_dir = tempfile.mkdtemp()
+
+        def simple_mkdir(path):
+            os.makedirs(path, exist_ok=True)
+            return True
+
         patcher = patch("cms.io.service.get_service_address")
         self.get_service_address = patcher.start()
         self.addCleanup(patcher.stop)
+
+        patcher_rpc_addr = patch("cms.io.rpc.get_service_address")
+        mock_rpc_addr = patcher_rpc_addr.start()
+        mock_rpc_addr.return_value = Address('127.0.0.1', '12345')
+        self.addCleanup(patcher_rpc_addr.stop)
+
+        patcher_io_mkdir = patch("cms.io.service.mkdir", side_effect=simple_mkdir)
+        patcher_io_mkdir.start()
+        self.addCleanup(patcher_io_mkdir.stop)
+
+        patcher_io_config = patch("cms.io.service.config")
+        mock_io_config = patcher_io_config.start()
+        mock_io_config.log_dir = self._tmp_log_dir
+        mock_io_config.file_log_debug = False
+        mock_io_config.backdoor = False
+        self.addCleanup(patcher_io_config.stop)
+
+        import shutil
+        self.addCleanup(lambda: shutil.rmtree(self._tmp_log_dir, ignore_errors=True))
 
         self.notifiers = [Notifier(), Notifier()]
 

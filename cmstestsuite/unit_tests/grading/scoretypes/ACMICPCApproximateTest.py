@@ -21,6 +21,7 @@
 
 import json
 import unittest
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 from cms.grading.scoretypes.ACMICPCApproximate import ACMICPCApproximate
@@ -65,14 +66,15 @@ class TestACMICPCApproximate(unittest.TestCase):
         st = ACMICPCApproximate(10000, self._public_testcases)
 
         sr = MagicMock()
-        sr.evaluated.return_value = True
+        sr.evaluated.return_value = False
         sr.evaluations = []
         
         mock_submission = MagicMock()
-        mock_submission.timestamp = 1000
-        mock_submission.task.contest.start = 0
+        _base_time = datetime(2020, 1, 1, 0, 0, 0)
+        mock_submission.timestamp = _base_time + timedelta(seconds=1000)
+        mock_submission.task.contest.start = _base_time
         mock_submission.task_id = "task1"
-        mock_submission.participation = "part1"
+        mock_submission.participation_id = 1
         sr.submission = mock_submission
 
         with patch('cms.grading.scoretypes.ACMICPCApproximate.SessionGen') as mock_session_gen:
@@ -98,14 +100,15 @@ class TestACMICPCApproximate(unittest.TestCase):
         st = ACMICPCApproximate(10000, self._public_testcases)
 
         sr = MagicMock()
-        sr.evaluated.return_value = True
+        sr.evaluated.return_value = False
         sr.evaluations = []
         
         mock_submission = MagicMock()
-        mock_submission.timestamp = 1000
-        mock_submission.task.contest.start = 0
+        _base_time = datetime(2020, 1, 1, 0, 0, 0)
+        mock_submission.timestamp = _base_time + timedelta(seconds=1000)
+        mock_submission.task.contest.start = _base_time
         mock_submission.task_id = "task1"
-        mock_submission.participation = "part1"
+        mock_submission.participation_id = 1
         sr.submission = mock_submission
 
         with patch('cms.grading.scoretypes.ACMICPCApproximate.SessionGen') as mock_session_gen:
@@ -132,13 +135,20 @@ class TestACMICPCApproximate(unittest.TestCase):
         mock_eval.text = "OK"
         mock_eval.execution_time = 0.1
         mock_eval.execution_memory = 1024
-        sr.evaluations = [mock_eval]
+        mock_eval2 = MagicMock()
+        mock_eval2.codename = "1"
+        mock_eval2.outcome = 1.0
+        mock_eval2.text = "OK"
+        mock_eval2.execution_time = 0.1
+        mock_eval2.execution_memory = 1024
+        sr.evaluations = [mock_eval, mock_eval2]
         
         mock_submission = MagicMock()
-        mock_submission.timestamp = 1000
-        mock_submission.task.contest.start = 0
+        _base_time = datetime(2020, 1, 1, 0, 0, 0)
+        mock_submission.timestamp = _base_time + timedelta(seconds=1000)
+        mock_submission.task.contest.start = _base_time
         mock_submission.task_id = "task1"
-        mock_submission.participation = "part1"
+        mock_submission.participation_id = 1
         sr.submission = mock_submission
 
         with patch('cms.grading.scoretypes.ACMICPCApproximate.SessionGen') as mock_session_gen:

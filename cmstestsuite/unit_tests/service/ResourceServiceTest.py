@@ -72,7 +72,9 @@ class TestProcessMatcher(unittest.TestCase):
 
     def test_find_works(self):
         for c in self.w0_cmdlines:
-            with patch.object(ProcessMatcher, '_get_all_processes') as f:
+            with patch.object(ProcessMatcher, '_get_all_processes') as f, \
+                 patch('cms.service.ResourceService.get_safe_shard',
+                       side_effect=lambda name, shard: shard if shard is not None else 0):
                 f.return_value = (TestProcessMatcher._get_all_processes_ret(
                     self.bad_cmdlines + [(c, "good")] + self.bad_cmdlines))
                 self.assertEqual(self.pm.find(self.w0), "good")
@@ -86,7 +88,9 @@ class TestProcessMatcher(unittest.TestCase):
                 self.assertIsNone(self.pm.find(service))
 
     def test_get_all_processes_is_called_once(self):
-        with patch.object(ProcessMatcher, '_get_all_processes') as f:
+        with patch.object(ProcessMatcher, '_get_all_processes') as f, \
+             patch('cms.service.ResourceService.get_safe_shard',
+                   side_effect=lambda name, shard: shard if shard is not None else 0):
             f.return_value = (TestProcessMatcher._get_all_processes_ret(
                 self.w0_cmdlines + self.bad_cmdlines))
             self.assertEqual(self.pm.find(self.w0), "base")
