@@ -327,6 +327,9 @@ class SubmissionDetailsHandler(ContestHandler):
             details = score_type.get_html_details(
                 raw_details, feedback_level, translation=self.translation)
 
+            if config.hide_solution_details and not is_analysis_mode:
+                details = None
+
         self.render("submission_details.html", sr=sr, details=details,
                     **self.r_params)
 

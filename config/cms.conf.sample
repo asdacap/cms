@@ -139,6 +139,11 @@
     "_help": "example for C++ add 'cpp/index.html', for Java 'java/index.html'.",
     "docs_path": "/usr/share/cms/docs",
 
+    "_help": "When true, participants who did not achieve a perfect score will",
+    "_help": "not see per-testcase outcome details (correct/wrong). They will",
+    "_help": "still see their overall score and compilation output.",
+    "hide_solution_details": false,
+
 
 
     "_section": "AdminWebServer",
