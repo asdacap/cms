@@ -13,6 +13,9 @@ Download as <a href="{{ url("contest", contest.id, "ranking", "csv") }}">csv</a>
       {% if show_teams %}
       <th>Team</th>
       {% endif %}
+      {% if show_solved %}
+      <th data-sort-settings="numeric reversed">Solved</th>
+      {% endif %}
       {% for task in contest.tasks %}
       <th data-sort-settings="numeric reversed"><a href="{{ url("task", task.id) }}">{{ task.name }}</a></th>
       {% endfor %}
@@ -34,6 +37,9 @@ Download as <a href="{{ url("contest", contest.id, "ranking", "csv") }}">csv</a>
         {% else %}
         <td></td>
         {% endif %}
+      {% endif %}
+      {% if show_solved %}
+      <td>{{ p.solved_count }}</td>
       {% endif %}
       {% for t_score, t_partial in p.scores %}
       <td {%- if t_partial %} class="partial" {%- endif -%}>{{ t_score }}</td>

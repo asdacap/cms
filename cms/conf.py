@@ -165,6 +165,8 @@ class Config:
         self.admin_listen_port = 8889
         self.admin_cookie_duration = 10 * 60 * 60  # 10 hours
         self.admin_num_proxies_used = None
+        self.ranking_show_solved_count = False
+        self.ranking_hide_teams = False
 
         # ProxyService.
         self.rankings = ["http://usern4me:passw0rd@localhost:8890/"]

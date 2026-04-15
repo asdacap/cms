@@ -31,6 +31,7 @@ import io
 
 from sqlalchemy.orm import joinedload
 
+from cms import config
 from cms.db import Contest
 from cms.grading.scoring import task_score
 from .base import BaseHandler, require_permission
@@ -56,10 +57,7 @@ class RankingHandler(BaseHandler):
             .first()
 
         # Preprocess participations: get data about teams, scores
-        show_teams = False
         for p in self.contest.participations:
-            show_teams = show_teams or p.team_id
-
             p.scores = []
             total_score = 0.0
             partial = False
@@ -70,9 +68,14 @@ class RankingHandler(BaseHandler):
                 partial = partial or t_partial
             total_score = round(total_score, self.contest.score_precision)
             p.total_score = (total_score, partial)
+            p.solved_count = sum(1 for score, _ in p.scores if score > 0)
+
+        show_teams = not config.ranking_hide_teams and any(
+            p.team_id for p in self.contest.participations)
 
         self.r_params = self.render_params()
         self.r_params["show_teams"] = show_teams
+        self.r_params["show_solved"] = config.ranking_show_solved_count
         if format == "txt":
             self.set_header("Content-Type", "text/plain")
             self.set_header("Content-Disposition",
@@ -93,6 +96,8 @@ class RankingHandler(BaseHandler):
             row = ["Username", "User"]
             if show_teams:
                 row.append("Team")
+            if config.ranking_show_solved_count:
+                row.append("Solved")
             for task in contest.tasks:
                 row.append(task.name)
                 if include_partial:
@@ -113,6 +118,8 @@ class RankingHandler(BaseHandler):
                        "%s %s" % (p.user.first_name, p.user.last_name)]
                 if show_teams:
                     row.append(p.team.name if p.team else "")
+                if config.ranking_show_solved_count:
+                    row.append(p.solved_count)
                 assert len(contest.tasks) == len(p.scores)
                 for t_score, t_partial in p.scores:  # Custom field, see above
                     row.append(t_score)
