@@ -562,6 +562,16 @@ class EvaluationService(TriggeredService):
                                 for ev in evaluations
                             )
                             if has_failure:
+                                logger.info(
+                                    "Submission %d dataset %d: "
+                                    "failure detected with %d/%d "
+                                    "evaluations done, skipping "
+                                    "remaining due to "
+                                    "stop_on_first_failure.",
+                                    object_id, dataset_id,
+                                    num_evaluations,
+                                    num_testcases_per_dataset[
+                                        dataset_id])
                                 self._skip_remaining_evaluations(
                                     session, object_id, dataset_id,
                                     dataset)
