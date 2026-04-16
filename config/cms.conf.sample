@@ -164,10 +164,6 @@
     "_help": "a proxy, you will likely want to set this value to 1.",
     "admin_num_proxies_used": 0,
 
-    "_help": "Whether to show a 'Solved' column in the admin ranking page,",
-    "_help": "displaying the count of tasks where the participant scored > 0.",
-    "ranking_show_solved_count": false,
-
     "_help": "Whether to hide the 'Team' column in the admin ranking page,",
     "_help": "even when participations have team assignments.",
     "ranking_hide_teams": false,

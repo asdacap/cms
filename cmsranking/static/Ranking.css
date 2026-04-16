@@ -433,6 +433,10 @@ abbr {
     width:         calc(2em + 20px);
 }
 
+#Scoreboard_cols col.solved {
+    width: 48px;
+}
+
 #Scoreboard_head tr {
     height: 2.5em;
 }

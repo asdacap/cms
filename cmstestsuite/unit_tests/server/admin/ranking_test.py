@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Tests for ranking handler logic (solved count and config flags)."""
+"""Tests for ranking handler logic (config flags)."""
 
 import unittest
 from unittest.mock import patch
@@ -23,74 +23,10 @@ from unittest.mock import patch
 from cmstestsuite.unit_tests.databasemixin import DatabaseMixin
 
 from cms import config
-from cms.grading.scoring import task_score
-
-
-class TestRankingSolvedCount(DatabaseMixin, unittest.TestCase):
-    """Tests for the solved_count computation used by RankingHandler."""
-
-    def setUp(self):
-        super().setUp()
-        self.contest = self.add_contest()
-        self.participation = self.add_participation(contest=self.contest)
-
-    def _add_task_with_score(self, score):
-        """Add a task and a scored submission for it."""
-        task = self.add_task(contest=self.contest, score_precision=2)
-        dataset = self.add_dataset(task=task)
-        task.active_dataset = dataset
-        if score is not None:
-            submission = self.add_submission(
-                participation=self.participation, task=task)
-            self.add_submission_result(
-                submission, dataset,
-                score=score, public_score=0.0,
-                score_details=[], public_score_details=[],
-                ranking_score_details=[])
-        return task
-
-    def _compute_solved_count(self):
-        """Replicate the ranking handler's solved_count computation."""
-        scores = []
-        for task in self.contest.tasks:
-            t_score, _ = task_score(self.participation, task, rounded=True)
-            scores.append((t_score, False))
-        return sum(1 for score, _ in scores if score > 0)
-
-    def test_solved_count_basic(self):
-        self._add_task_with_score(10.0)
-        self._add_task_with_score(5.0)
-        self._add_task_with_score(0.0)
-        self.session.flush()
-
-        self.assertEqual(self._compute_solved_count(), 2)
-
-    def test_solved_count_zero(self):
-        self._add_task_with_score(0.0)
-        self._add_task_with_score(0.0)
-        self._add_task_with_score(0.0)
-        self.session.flush()
-
-        self.assertEqual(self._compute_solved_count(), 0)
-
-    def test_solved_count_all_solved(self):
-        self._add_task_with_score(10.0)
-        self._add_task_with_score(5.0)
-        self._add_task_with_score(1.0)
-        self.session.flush()
-
-        self.assertEqual(self._compute_solved_count(), 3)
-
-    def test_solved_count_no_submissions(self):
-        self._add_task_with_score(None)
-        self._add_task_with_score(None)
-        self.session.flush()
-
-        self.assertEqual(self._compute_solved_count(), 0)
 
 
 class TestRankingConfigFlags(DatabaseMixin, unittest.TestCase):
-    """Tests for ranking config flags (hide_teams, show_solved_count)."""
+    """Tests for ranking config flags (hide_teams)."""
 
     def setUp(self):
         super().setUp()
@@ -125,14 +61,6 @@ class TestRankingConfigFlags(DatabaseMixin, unittest.TestCase):
 
         with patch.object(config, "ranking_hide_teams", True):
             self.assertFalse(self._compute_show_teams())
-
-    def test_show_solved_config_true(self):
-        with patch.object(config, "ranking_show_solved_count", True):
-            self.assertTrue(config.ranking_show_solved_count)
-
-    def test_show_solved_config_false(self):
-        with patch.object(config, "ranking_show_solved_count", False):
-            self.assertFalse(config.ranking_show_solved_count)
 
 
 if __name__ == "__main__":

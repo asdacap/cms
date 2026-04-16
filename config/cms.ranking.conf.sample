@@ -36,6 +36,9 @@
     "show_team": true,
     "first_name_is_name": false,
     "show_full_task_name": false,
+    "_help": "Whether to show a 'Solved' column displaying the count of",
+    "_help": "tasks where the participant scored > 0.",
+    "show_solved_count": false,
 
     "_help": "Event buffer size (must be > 0).",
     "buffer_size": 100,

@@ -94,6 +94,7 @@ var Config = new function () {
     self.show_team = true;
     self.first_name_is_name = false;
     self.show_full_task_name = false;
+    self.show_solved_count = false;
 
     /**
      * Fetch configuration from the server.

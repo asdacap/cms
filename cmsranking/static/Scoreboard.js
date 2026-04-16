@@ -268,6 +268,12 @@ var Scoreboard = new function () {
 <col class=\"tags\"/> <col/><col/>";
         }
 
+        // Add solved count column if enabled
+        if (Config.show_solved_count) {
+            result += " \
+<col class=\"solved\"/>";
+        }
+
         var contests = DataStore.contest_list;
         for (var i in contests) {
             var contest = contests[i];
@@ -322,6 +328,12 @@ var Scoreboard = new function () {
         if (DataStore.tag_count > 0) {
             result += " \
     <th colspan=\"3\" class=\"tags\">Tags</th>";
+        }
+
+        // Add solved count header if enabled
+        if (Config.show_solved_count) {
+            result += " \
+    <th class=\"solved\">Solved</th>";
         }
 
         var contests = DataStore.contest_list;
@@ -408,6 +420,18 @@ var Scoreboard = new function () {
             }
             tag_html += "</td>";
             result += tag_html;
+        }
+
+        // Add solved count cell if enabled
+        if (Config.show_solved_count) {
+            var solved = 0;
+            for (var t_id in DataStore.tasks) {
+                if (user["t_" + t_id] > 0) {
+                    solved += 1;
+                }
+            }
+            result += " \
+    <td class=\"solved\">" + solved + "</td>";
         }
 
         var contests = DataStore.contest_list;
@@ -695,6 +719,17 @@ var Scoreboard = new function () {
                 $this.replaceWith(self.draw_score_cell(user, task));
             }
         });
+
+        // Update solved count if enabled
+        if (Config.show_solved_count) {
+            var solved = 0;
+            for (var t_id in DataStore.tasks) {
+                if (user["t_" + t_id] > 0) {
+                    solved += 1;
+                }
+            }
+            $row.children("td.solved").text(solved);
+        }
 
         self.move_user(user);
 
