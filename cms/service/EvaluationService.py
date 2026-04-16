@@ -40,7 +40,7 @@ import gevent.lock
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
-from cms import ServiceCoord, get_service_shards
+from cms import config, ServiceCoord, get_service_shards
 from cmscommon.datetime import make_timestamp
 from cms.db import SessionGen, Digest, Dataset, Evaluation, Submission, \
     SubmissionResult, Testcase, UserTest, UserTestResult, get_submissions, \
@@ -61,9 +61,6 @@ logger = logging.getLogger(__name__)
 
 
 class EvaluationExecutor(Executor):
-
-    # Real maximum number of operations to be sent to a worker.
-    MAX_OPERATIONS_PER_BATCH = 25
 
     def __init__(self, evaluation_service):
         """Create the single executor for ES.
@@ -112,13 +109,13 @@ class EvaluationExecutor(Executor):
         """Return the maximum number of operations per batch.
 
         We derive the number from the length of the queue divided by
-        the number of workers, with a cap at MAX_OPERATIONS_PER_BATCH.
+        the number of workers, with a cap at config.max_operations_per_batch.
 
         """
         # TODO: len(self.pool) is the total number of workers,
         # included those that are disabled.
         ratio = len(self._operation_queue) // len(self.pool) + 1
-        ret = min(max(ratio, 1), EvaluationExecutor.MAX_OPERATIONS_PER_BATCH)
+        ret = min(max(ratio, 1), config.max_operations_per_batch)
         logger.info("Ratio is %d, executing %d operations together.",
                     ratio, ret)
         return ret

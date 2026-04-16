@@ -133,6 +133,9 @@ class Config:
         self.trusted_sandbox_max_time_s = 10.0
         self.trusted_sandbox_max_memory_kib = 4 * 1024 * 1024  # 4 GiB
 
+        # EvaluationService.
+        self.max_operations_per_batch = 25
+
         # WebServers.
         self.secret_key_default = "8e045a51e4b102ea803c06f92841a1fb"
         self.secret_key = self.secret_key_default

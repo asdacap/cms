@@ -170,6 +170,15 @@
 
 
 
+    "_section": "EvaluationService",
+
+    "_help": "Maximum number of operations to batch together and send to",
+    "_help": "a single worker at once. The actual batch size is the queue",
+    "_help": "length divided by the number of workers, capped at this value.",
+    "max_operations_per_batch": 25,
+
+
+
     "_section": "ScoringService",
 
     "_help": "List of URLs (with embedded username and password) of the",
