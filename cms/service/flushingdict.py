@@ -95,4 +95,8 @@ class FlushingDict:
                             since_last_insert > self.flush_latency_seconds):
                         break
                 gevent.sleep(0.05)
-            self.flush()
+            try:
+                self.flush()
+            except Exception:
+                logger.error("Unexpected error in flush callback.",
+                             exc_info=True)
