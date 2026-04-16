@@ -381,6 +381,15 @@ class Dataset(Base):
         nullable=False,
         default=False)
 
+    # Whether to stop evaluating remaining testcases for a submission
+    # as soon as any testcase evaluation returns a failing outcome
+    # (i.e., outcome <= 0.0). Skipped testcases get a placeholder
+    # evaluation with outcome "0.0" and text "Skipped".
+    stop_on_first_failure = Column(
+        Boolean,
+        nullable=False,
+        default=False)
+
     # Time and memory limits (in seconds and bytes) for every testcase.
     time_limit = Column(
         Float,
