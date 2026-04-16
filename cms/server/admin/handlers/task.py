@@ -186,6 +186,9 @@ class TaskHandler(BaseHandler):
                                    "TaskTypeOptions_%d_" % dataset.id)
                 self.get_score_type(attrs, "score_type_%d" % dataset.id,
                                     "score_type_parameters_%d" % dataset.id)
+                attrs["stop_on_first_failure"] = bool(
+                    self.get_argument(
+                        "stop_on_first_failure_%d" % dataset.id, False))
 
                 # Update the dataset.
                 dataset.set_attrs(attrs)
@@ -431,6 +434,8 @@ class AddDatasetHandler(BaseHandler):
 
             # Create the dataset.
             attrs["autojudge"] = False
+            attrs["stop_on_first_failure"] = bool(
+                self.get_argument("stop_on_first_failure", False))
             attrs["task"] = task
             dataset = Dataset(**attrs)
             self.sql_session.add(dataset)

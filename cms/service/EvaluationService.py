@@ -548,6 +548,29 @@ class EvaluationService(TriggeredService):
                         .query(func.count(Evaluation.id)) \
                         .filter(Evaluation.dataset_id == dataset_id) \
                         .filter(Evaluation.submission_id == object_id).scalar()
+
+                    if num_evaluations < \
+                            num_testcases_per_dataset[dataset_id]:
+                        dataset = Dataset.get_from_id(dataset_id, session)
+                        if dataset is not None \
+                                and dataset.stop_on_first_failure:
+                            # Check if any evaluation has a failing outcome.
+                            evaluations = session.query(Evaluation).filter(
+                                Evaluation.dataset_id == dataset_id,
+                                Evaluation.submission_id == object_id,
+                            ).all()
+                            has_failure = any(
+                                ev.outcome is not None
+                                and float(ev.outcome) <= 0.0
+                                for ev in evaluations
+                            )
+                            if has_failure:
+                                self._skip_remaining_evaluations(
+                                    session, object_id, dataset_id,
+                                    dataset)
+                                num_evaluations = \
+                                    num_testcases_per_dataset[dataset_id]
+
                     if num_evaluations == num_testcases_per_dataset[dataset_id]:
                         submission_result = SubmissionResult.get_from_id(
                             (object_id, dataset_id), session)
@@ -662,6 +685,54 @@ class EvaluationService(TriggeredService):
 
         else:
             logger.error("Invalid operation type %r.", operation.type_)
+
+    def _skip_remaining_evaluations(self, session, submission_id,
+                                     dataset_id, dataset):
+        """Create placeholder Evaluation rows for unevaluated testcases
+        and dequeue their pending operations.
+
+        Called when stop_on_first_failure is enabled and a testcase
+        evaluation has returned a failing outcome.
+
+        session (Session): the DB session to use.
+        submission_id (int): the submission's ID.
+        dataset_id (int): the dataset's ID.
+        dataset (Dataset): the dataset object.
+
+        """
+        evaluated_tc_ids = set(
+            row[0] for row in session.query(Evaluation.testcase_id).filter(
+                Evaluation.dataset_id == dataset_id,
+                Evaluation.submission_id == submission_id
+            ).all()
+        )
+
+        for codename, testcase in dataset.testcases.items():
+            if testcase.id not in evaluated_tc_ids:
+                session.add(Evaluation(
+                    submission_id=submission_id,
+                    dataset_id=dataset_id,
+                    testcase=testcase,
+                    outcome="0.0",
+                    text=["Skipped"],
+                ))
+
+                # Best-effort dequeue from executor queue.
+                operation = ESOperation(
+                    ESOperation.EVALUATION,
+                    submission_id,
+                    dataset_id,
+                    codename)
+                try:
+                    self.get_executor().dequeue(operation)
+                except KeyError:
+                    pass  # Already in-flight or completed.
+
+        session.flush()
+        logger.info(
+            "Skipped remaining evaluations for submission %d(%d) "
+            "due to stop_on_first_failure.",
+            submission_id, dataset_id)
 
     def compilation_ended(self, submission_result):
         """Actions to be performed when we have a submission that has

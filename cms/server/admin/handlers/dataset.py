@@ -149,6 +149,8 @@ class CloneDatasetHandler(BaseHandler):
 
             # Create the dataset.
             attrs["autojudge"] = False
+            attrs["stop_on_first_failure"] = bool(
+                self.get_argument("stop_on_first_failure", False))
             attrs["task"] = task
             dataset = Dataset(**attrs)
             self.sql_session.add(dataset)
