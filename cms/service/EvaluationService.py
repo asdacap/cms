@@ -714,11 +714,12 @@ class EvaluationService(TriggeredService):
             ).all()
         )
 
+        submission_result = SubmissionResult.get_from_id(
+            (submission_id, dataset_id), session)
+
         for codename, testcase in dataset.testcases.items():
             if testcase.id not in evaluated_tc_ids:
-                session.add(Evaluation(
-                    submission_id=submission_id,
-                    dataset_id=dataset_id,
+                submission_result.evaluations.append(Evaluation(
                     testcase=testcase,
                     outcome="0.0",
                     text=["Skipped"],
