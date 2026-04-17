@@ -657,18 +657,17 @@ class EvaluationService(TriggeredService):
                 object_result.compilation_tries += 1
 
         elif operation.type_ == ESOperation.EVALUATION:
-            if result.job_success:
-                testcase = object_result.dataset.testcases.get(
-                    operation.testcase_codename)
-                if testcase is not None \
-                        and object_result.get_evaluation(testcase) is not None:
-                    logger.info(
-                        "Discarding late worker result for %s: an "
-                        "Evaluation row already exists (likely a "
-                        "stop_on_first_failure placeholder).",
-                        operation)
-                else:
-                    result.job.to_submission(object_result)
+            testcase = object_result.dataset.testcases.get(
+                operation.testcase_codename)
+            if testcase is not None \
+                    and object_result.get_evaluation(testcase) is not None:
+                logger.info(
+                    "Discarding late worker result for %s: an "
+                    "Evaluation row already exists (likely a "
+                    "stop_on_first_failure placeholder).",
+                    operation)
+            elif result.job_success:
+                result.job.to_submission(object_result)
             else:
                 if result.job.plus is not None and \
                    result.job.plus.get("tombstone") is True:
