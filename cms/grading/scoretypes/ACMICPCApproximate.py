@@ -39,10 +39,13 @@ def N_(message):
 class ACMICPCApproximate(ScoreTypeAlone):
     """A scoring that approximates ACM-ICPC style ranking system.
 
-    The parameter is an array of up to three numbers [base, penalty, time_decay]:
+    The parameter is an array of up to four entries
+    [base, penalty, time_decay, count_ce_as_wrong]:
     - base: The base score for a correct submission (default: 10000)
     - penalty: Points deducted per wrong submission (default: 20)
     - time_decay: Points deducted per second elapsed (default: 1)
+    - count_ce_as_wrong: Whether compilation errors count as wrong
+      attempts for the penalty (default: True)
 
     If all testcases are correct, the score is:
         base - (previous_wrong_submissions * penalty) - (seconds_elapsed * time_decay)
@@ -55,6 +58,7 @@ class ACMICPCApproximate(ScoreTypeAlone):
     N_("Execution time")
     N_("Memory used")
     N_("N/A")
+    N_("Compilation failed")
     TEMPLATE = """\
 <div class="acmicpc-summary">
     <table class="table table-condensed">
@@ -119,11 +123,12 @@ class ACMICPCApproximate(ScoreTypeAlone):
     def params(self):
         """Extract parameters from the configuration.
 
-        Returns (tuple): (base, penalty, time_decay)
+        Returns (tuple): (base, penalty, time_decay, count_ce_as_wrong)
         """
         base = 10000
         penalty = 20
         time_decay = 1
+        count_ce_as_wrong = True
         if isinstance(self.parameters, list):
             if len(self.parameters) > 0:
                 base = self.parameters[0]
@@ -131,14 +136,16 @@ class ACMICPCApproximate(ScoreTypeAlone):
                 penalty = self.parameters[1]
             if len(self.parameters) > 2:
                 time_decay = self.parameters[2]
+            if len(self.parameters) > 3:
+                count_ce_as_wrong = bool(self.parameters[3])
         else:
             base = self.parameters
 
-        return base, penalty, time_decay
+        return base, penalty, time_decay, count_ce_as_wrong
 
     def max_scores(self):
         """See ScoreType.max_score."""
-        base, penalty, time_decay = self.params()
+        base, _penalty, _time_decay, _count_ce_as_wrong = self.params()
         public_score = float(base)
         score = float(base)
         return score, public_score, ["Wrong Attempts", "Time Penalty"]
@@ -148,9 +155,13 @@ class ACMICPCApproximate(ScoreTypeAlone):
                      score_precision, translation=DEFAULT_TRANSLATION):
         """Format the score for display in CWS.
 
-        Shows "Accepted" for positive scores, otherwise shows the first
-        failing testcase's status text.
+        Shows "Accepted" for positive scores, "Compilation failed" for
+        compilation errors, otherwise shows the first failing testcase's
+        status text.
         """
+        if unused_score_details \
+                and unused_score_details.get("compilation_failed"):
+            return translation.gettext("Compilation failed")
         if score > 0:
             return "Accepted"
         else:
@@ -164,7 +175,7 @@ class ACMICPCApproximate(ScoreTypeAlone):
     def compute_score(self, submission_result):
         """See ScoreType.compute_score."""
         with SessionGen() as session:
-            base, penalty, time_decay = self.params()
+            base, penalty, time_decay, count_ce_as_wrong = self.params()
 
             # XXX Lexicographical order by codename
             indices = sorted(self.public_testcases.keys())
@@ -197,15 +208,20 @@ class ACMICPCApproximate(ScoreTypeAlone):
 
             score = base
 
+            ce = submission_result.compilation_failed()
+
             # Count previous wrong submissions for this task by this participant
-            before_count = session.query(Submission).join(SubmissionResult) \
+            prior_query = session.query(Submission).join(SubmissionResult) \
                 .filter(Submission.timestamp < submission_result.submission.timestamp) \
                 .filter(Submission.task_id == submission_result.submission.task_id) \
                 .filter(Submission.participation == submission_result.submission.participation) \
-                .filter(SubmissionResult.score == 0) \
-                .count()
+                .filter(SubmissionResult.score == 0)
+            if not count_ce_as_wrong:
+                prior_query = prior_query.filter(
+                    SubmissionResult.compilation_outcome != "fail")
+            before_count = prior_query.count()
 
-            if has_wrong:  # This submission is also a wrong attempt
+            if has_wrong and not (ce and not count_ce_as_wrong):
                 before_count += 1
 
             score -= before_count * penalty
@@ -223,6 +239,7 @@ class ACMICPCApproximate(ScoreTypeAlone):
                 "second_elapsed": second_elapsed,
                 "time_penalty": time_penalty,
                 "testcases": testcases,
+                "compilation_failed": False,
             }
 
             if has_wrong:
@@ -233,6 +250,7 @@ class ACMICPCApproximate(ScoreTypeAlone):
                     "second_elapsed": second_elapsed,
                     "time_penalty": time_penalty,
                     "testcases": testcases,
+                    "compilation_failed": ce,
                 }
                 score = 0
 
