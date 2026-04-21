@@ -121,6 +121,12 @@ def parse_timedelta_min(value):
 
 def parse_datetime(value):
     """Parse and validate a datetime (in pseudo-ISO8601)."""
+    # Accept both "YYYY-MM-DD HH:MM:SS" and "YYYY-MM-DDTHH:MM[:SS]" so that
+    # values coming from HTML <input type="datetime-local"> are handled
+    # transparently alongside the legacy space-separated format.
+    value = value.replace("T", " ", 1)
+    if len(value) == len("YYYY-MM-DD HH:MM"):
+        value += ":00"
     if '.' not in value:
         value += ".0"
     try:

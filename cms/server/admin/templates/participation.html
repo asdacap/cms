@@ -130,7 +130,7 @@ function update_additional_answer(element, invoker)
                                     Example: '2015-12-31 15:00:00'."></span>
           Time of first login (in UTC)
         </td>
-        <td><input type="text" name="starting_time" value="{{ participation.starting_time if participation.starting_time is not none else "" }}"></td>
+        <td><input type="datetime-local" step="1" name="starting_time" value="{{ participation.starting_time.isoformat(timespec="seconds") if participation.starting_time is not none else "" }}"></td>
       </tr>
       <tr>
         <td>

@@ -209,7 +209,7 @@
                                   Example: '2015-12-31 15:00:00'."></span>
         Start time (in UTC)
       </td>
-      <td><input type="text" name="start" value="{{ contest.start }}"></td>
+      <td><input type="datetime-local" step="1" name="start" value="{{ contest.start.isoformat(timespec="seconds") if contest.start is not none else "" }}"></td>
     </tr>
     <tr>
       <td>
@@ -217,7 +217,7 @@
                                   Example: '2015-12-31 18:00:00'."></span>
         End time (in UTC)
       </td>
-      <td><input type="text" name="stop" value="{{ contest.stop }}"></td>
+      <td><input type="datetime-local" step="1" name="stop" value="{{ contest.stop.isoformat(timespec="seconds") if contest.stop is not none else "" }}"></td>
     </tr>
     <tr>
       <td>
@@ -226,7 +226,7 @@
                                   Example: '2015-12-31 17:00:00'."></span>
         Freeze time (in UTC)
       </td>
-      <td><input type="text" name="freeze_time" value="{{ contest.freeze_time if contest.freeze_time is not none else "" }}"></td>
+      <td><input type="datetime-local" step="1" name="freeze_time" value="{{ contest.freeze_time.isoformat(timespec="seconds") if contest.freeze_time is not none else "" }}"></td>
     </tr>
     <tr>
       <td>
@@ -304,7 +304,7 @@
                                   Example: '2015-12-31 15:00:00'."></span>
         Analysis mode start time (in UTC)
       </td>
-      <td><input type="text" name="analysis_start" value="{{ contest.analysis_start }}"></td>
+      <td><input type="datetime-local" step="1" name="analysis_start" value="{{ contest.analysis_start.isoformat(timespec="seconds") if contest.analysis_start is not none else "" }}"></td>
     </tr>
     <tr>
       <td>
@@ -312,7 +312,7 @@
                                   Example: '2015-12-31 18:00:00'."></span>
         Analysis mode end time (in UTC)
       </td>
-      <td><input type="text" name="analysis_stop" value="{{ contest.analysis_stop }}"></td>
+      <td><input type="datetime-local" step="1" name="analysis_stop" value="{{ contest.analysis_stop.isoformat(timespec="seconds") if contest.analysis_stop is not none else "" }}"></td>
     </tr>
   </table>
   <input type="submit"
