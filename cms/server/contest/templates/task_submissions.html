@@ -130,8 +130,10 @@ update_scores = function (submission_id, data) {
         row.children("td.status").append(
             $("<img class=\"details\" src=\"{{ url("static", "loading.gif") }}\"/>"));
     } else {
+{% if contest.show_submission_details %}
         row.children("td.status").append(
             $("<a class=\"details\">{% trans %}details{% endtrans %}</a>"));
+{% endif %}
     }
     if (terminal_status) {
         update_score(
@@ -379,7 +381,8 @@ $(document).ready(function () {
       can_play_token,
       can_play_token_now,
       submissions_download_allowed,
-      false) }}
+      false,
+      contest) }}
 <h3>{% trans %}Official submissions{% endtrans %}</h3>
 {% endif %}
 
@@ -395,7 +398,8 @@ $(document).ready(function () {
     can_play_token,
     can_play_token_now,
     submissions_download_allowed,
-    true) }}
+    true,
+    contest) }}
 
 <div class="modal fade hide wide" id="submission_detail">
     <div class="modal-header">
